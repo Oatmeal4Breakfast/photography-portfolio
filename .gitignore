@@ -13,4 +13,9 @@ wheels/
 # .env files
 .env
 
+# misc. scripts
 test_db.py
+
+
+# DB files
+src/inventory/
