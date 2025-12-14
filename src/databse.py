@@ -1,19 +1,21 @@
 from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from models.base import Base
+from models.photo import Base
 from config import DBConfig
 from pathlib import Path
 
 
-config = DBConfig().from_env()
+config = DBConfig.from_env()
 
-db_path = Path(config.file_name)
-db_path.parent.mkdir(parents=True, exist_ok=True)
+# if config.env_type == EnvType.DEVELOPMENT:
+#     db_path = Path(config.db_uri)
+#     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-sqlite_url: str = f"sqlite:///{config.file_name}"
 
-engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+db_url: str = config.db_uri
+
+engine = create_engine(db_url, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(engine)
 
