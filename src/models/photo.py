@@ -1,6 +1,4 @@
-from contextlib import nullcontext
-from typing import List, Text
-from typing import Optional
+from typing import List
 from sqlalchemy import ForeignKey
 from sqlalchemy import String, Text
 from sqlalchemy.orm import DeclarativeBase
@@ -26,8 +24,8 @@ class User(Base):
     __tablename__ = "user_account"
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
     name: Mapped[str] = mapped_column(String(30))
-    fullname: Mapped[Optional[str]]
-    comments = Mapped[List["Comment"]] = relationship(back_populates="user")
+    email: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    comments: Mapped[List["Comment"]] = relationship(back_populates="user", init=False)
 
 
 class Comment(Base):
@@ -36,5 +34,5 @@ class Comment(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     date: Mapped[datetime] = mapped_column(comment="Time the comment was made")
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_accoutn.id"))
-    user: Mapped["User"] = relationship(back_populates="commemts")
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_account.id"))
+    user: Mapped["User"] = relationship(back_populates="comments")
