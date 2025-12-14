@@ -5,9 +5,32 @@ from sqlalchemy import pool
 
 from alembic import context
 
+import sys
+from src.database import PROJECT_ROOT
+from src.models.models import Base
+from src.config import DBConfig
+
+from pathlib import Path
+
+sys.path.append(str(PROJECT_ROOT))
+
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+
+db_config = DBConfig.from_env()
+if db_config.db_uri.startswith("sqlite:///") and not db_config.db_uri.startswith(
+    "sqlite:////"
+):
+    relative_path = db_config.db_uri.replace("sqlite:///", "")
+    absolute_path = PROJECT_ROOT / relative_path
+    absolute_path.parent.mkdir(parents=True, exist_ok=True)
+
+    db_uri = f"sqlite:///{absolute_path}"
+
+config.set_main_option("sqlalchemy.url", db_uri)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -18,7 +41,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -64,9 +87,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
