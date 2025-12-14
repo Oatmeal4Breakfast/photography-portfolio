@@ -24,7 +24,7 @@ class DBConfig:
         env_type_str = os.getenv("ENV_TYPE")
 
         if db_uri is None or env_type_str is None:
-            raise ValueError("Missing env varialbles")
+            raise ValueError("Missing env variables")
 
         assert db_uri is not None
         assert env_type_str is not None
