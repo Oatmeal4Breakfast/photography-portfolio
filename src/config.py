@@ -20,7 +20,7 @@ class DBConfig:
 
     @classmethod
     def from_env(cls) -> Self:
-        db_uri = os.getenv("DB_FILE_NAME")
+        db_uri = os.getenv("DB_URI")
         env_type_str = os.getenv("ENV_TYPE")
 
         if db_uri is None or env_type_str is None:

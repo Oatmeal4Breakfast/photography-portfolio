@@ -12,3 +12,5 @@ wheels/
 
 # .env files
 .env
+
+test_db.py
