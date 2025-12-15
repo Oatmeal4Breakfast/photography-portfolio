@@ -36,8 +36,8 @@ class DBConfig:
                 f"{env_type_str} is not a valid type for the environment variable"
             )
 
-        if env_type == EnvType.PRODUCTION:
-            if db_uri.startswith("postgres://"):
-                db_uri = db_uri.replace("postgres://", "postgresql+psycopg://")
+        # if env_type == EnvType.PRODUCTION:
+        #     if db_uri.startswith("postgres://"):
+        #         db_uri = db_uri.replace("postgres://", "postgresql+psycopg://")
 
         return cls(db_uri, env_type)
