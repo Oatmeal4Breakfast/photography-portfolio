@@ -18,7 +18,7 @@ def _build_db_uri(config: DBConfig) -> str:
             db_absolute_path.parent.mkdir(parents=True, exist_ok=True)
             return f"sqlite:///{db_absolute_path}"
         else:
-            raise ValueError(f"{config.db_uri} is not a valid path")
+            raise ValueError(f"{config.db_uri} is not a valid path.")
 
     elif config.env_type == EnvType.PRODUCTION:
         if config.db_uri.startswith("postgres://"):
@@ -28,7 +28,7 @@ def _build_db_uri(config: DBConfig) -> str:
             db_uri = config.db_uri.replace("postgresql", "postgresql+psycopg")
             return db_uri
         else:
-            raise ValueError(f"{config.db_uri} is not postgres uri")
+            raise ValueError(f"{config.db_uri} is not postgres uri.")
     else:
         raise ValueError("Invalid db_uri")
 
