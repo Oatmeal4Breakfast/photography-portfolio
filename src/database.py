@@ -30,7 +30,7 @@ def _build_db_uri(config: DBConfig) -> str:
         else:
             raise ValueError(f"{config.db_uri} is not postgres uri.")
     else:
-        raise ValueError("Invalid db_uri")
+        raise ValueError("Invalid environment type")
 
 
 def _create_db_engine(db_uri: str) -> Engine:

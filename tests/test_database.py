@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, engine, inspect, text
 
 from src.config import DBConfig, EnvType
 from src.database import (
@@ -17,9 +17,9 @@ from src.models.models import Base
 
 @pytest.fixture()
 def test_engine():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    return engine
+    engine_ = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine_)
+    return engine_
 
 
 @pytest.fixture()
@@ -70,3 +70,125 @@ class TestBuildUrl:
 
         with pytest.raises(ValueError, f"{config.db_uri} is not a valid path."):
             _build_db_uri(config)
+
+    def test_production_postgres_appends_psycopg(self):
+        config = MagicMock(spec=DBConfig)
+        config.env_type = EnvType.PRODUCTION
+        config.db_uri = "postgres://localhost/database.db"
+
+        results = _build_db_uri(config)
+        assert results == "postgresql+psycopg://localhost/databse.db"
+
+    def test_production_postgresql_appends_psycopg(self):
+        config = MagicMock(spec=DBConfig)
+        config.env_type = EnvType.PRODUCTION
+        config.db_uri = "posgresql://localhost/database.db"
+
+        results = _build_db_uri(config)
+
+        assert results == "postgresql+psycopg://localhost/databse.db"
+
+    def test_production_nonpostgres_uri_raises_error(self):
+        config = MagicMock(spec=DBConfig)
+        config.env_type = EnvType.PRODUCTION
+        config.db_uri = "postgresss://localhost/databse.db"
+
+        with pytest.raises(ValueError, f"{config.db_uri} is not a progres uri."):
+            _build_db_uri(config)
+
+
+class TestCreateEngine:
+    def test_creates_valid_engine(self):
+        engine = _create_db_engine("sqlite:///:memory:")
+
+        assert engine is not None
+        assert str(engine.url) == "sqlite:///:memory:"
+
+    def test_create_engine_connection_args(self):
+        engine = _create_db_engine("sqlite:///:memory:")
+
+        assert engine is not None
+
+
+class TestInitDb:
+    def test_creates_all_tables(self, setup_test_db):
+        init_db()
+
+        inspector = inspect(setup_test_db)
+        table_names = inspector.get_tables_names()
+
+        assert len(table_names) > 0
+
+    def test_impodent(self, setup_test_db):
+        init_db()
+        init_db()
+
+        inspector = inspect(setup_test_db)
+        table_names = inspector.get_table_names()
+
+        assert len(table_names) > 0
+
+
+class TestGetDb:
+    """Test the get_db function"""
+
+    def test_yields_active_session(self, setup_test_db):
+        """Test that get_db yields an active session"""
+        gen = get_db()
+        session = next(gen)
+
+        assert session is not None
+        assert session.is_active
+
+        try:
+            next(gen)
+        except StopIteration:
+            pass
+
+    def test_closes_session_after_use(self, setup_test_db):
+        """Test that session is closed after use"""
+        gen = get_db()
+        session = next(gen)
+
+        try:
+            next(gen)
+        except StopIteration:
+            pass
+
+        assert not session.is_active
+
+    def test_closes_session_on_exception(self, setup_test_db):
+        """Test that session closes even on exception"""
+        gen = get_db()
+        session = next(gen)
+
+        try:
+            gen.throw(Exception("Test exception"))
+        except Exception:
+            pass
+
+        assert not session.is_active
+
+    def test_can_execute_queries(self, db_session):
+        """Test that session can execute queries"""
+        result = db_session.execute(text("SELECT 1 as num"))
+        row = result.fetchone()
+
+        assert row[0] == 1
+
+    def test_multiple_sessions_independent(self, setup_test_db):
+        """Test that multiple sessions are independent"""
+        gen1 = get_db()
+        session1 = next(gen1)
+
+        gen2 = get_db()
+        session2 = next(gen2)
+
+        assert session1 is not session2
+
+        # Cleanup
+        for gen in [gen1, gen2]:
+            try:
+                next(gen)
+            except StopIteration:
+                pass
