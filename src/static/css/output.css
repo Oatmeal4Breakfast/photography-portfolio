@@ -223,6 +223,9 @@
   .grid {
     display: grid;
   }
+  .table {
+    display: table;
+  }
   .flex-auto {
     flex: auto;
   }

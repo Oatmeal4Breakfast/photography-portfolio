@@ -1,8 +1,8 @@
 """Initial schema
 
-Revision ID: 9b6933144cc4
+Revision ID: 6145ecc436ea
 Revises: 
-Create Date: 2025-12-14 00:08:43.303167
+Create Date: 2025-12-16 16:20:34.024799
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9b6933144cc4'
+revision: str = '6145ecc436ea'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,9 +25,15 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=50), nullable=False),
     sa.Column('description', sa.String(length=300), nullable=True),
+    sa.Column('file_name', sa.String(length=50), nullable=False),
+    sa.Column('original_path', sa.String(length=300), nullable=False),
+    sa.Column('thumbnail_path', sa.String(length=300), nullable=False),
     sa.Column('collection', sa.String(length=100), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('collection')
+    sa.UniqueConstraint('collection'),
+    sa.UniqueConstraint('file_name'),
+    sa.UniqueConstraint('original_path'),
+    sa.UniqueConstraint('thumbnail_path')
     )
     op.create_table('user_account',
     sa.Column('id', sa.Integer(), nullable=False),

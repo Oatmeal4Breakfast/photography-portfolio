@@ -19,3 +19,4 @@ test_db.py
 
 # DB files
 inventory/
+uploads/

@@ -17,6 +17,11 @@ class Photo(Base):
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
     title: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str] = mapped_column(String(300), nullable=True)
+    file_name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    original_path: Mapped[str] = mapped_column(String(300), nullable=False, unique=True)
+    thumbnail_path: Mapped[str] = mapped_column(
+        String(300), nullable=False, unique=True
+    )
     collection: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
 
 
