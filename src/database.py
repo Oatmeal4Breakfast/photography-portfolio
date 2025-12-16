@@ -28,7 +28,7 @@ def _build_db_uri(config: DBConfig) -> str:
             db_uri = config.db_uri.replace("postgresql", "postgresql+psycopg")
             return db_uri
         else:
-            raise ValueError(f"{config.db_uri} is not postgres uri.")
+            raise ValueError(f"{config.db_uri} is not a postgres uri.")
     else:
         raise ValueError("Invalid environment type")
 

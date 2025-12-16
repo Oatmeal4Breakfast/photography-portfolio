@@ -57,7 +57,7 @@ class TestBuildUrl:
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "sqlite:///data/nested/test.db"
 
-        with patch("src.data.PROJECT_ROOT", tmp_path):
+        with patch("src.database.PROJECT_ROOT", tmp_path):
             _build_db_uri(config)
 
             expected_dir = tmp_path / "data" / "nested"
@@ -68,7 +68,7 @@ class TestBuildUrl:
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "postgres://local_host"
 
-        with pytest.raises(ValueError, f"{config.db_uri} is not a valid path."):
+        with pytest.raises(ValueError, match=f"{config.db_uri} is not a valid path."):
             _build_db_uri(config)
 
     def test_production_postgres_appends_psycopg(self):
@@ -77,23 +77,23 @@ class TestBuildUrl:
         config.db_uri = "postgres://localhost/database.db"
 
         results = _build_db_uri(config)
-        assert results == "postgresql+psycopg://localhost/databse.db"
+        assert results == "postgresql+psycopg://localhost/database.db"
 
     def test_production_postgresql_appends_psycopg(self):
         config = MagicMock(spec=DBConfig)
         config.env_type = EnvType.PRODUCTION
-        config.db_uri = "posgresql://localhost/database.db"
+        config.db_uri = "postgresql://localhost/database.db"
 
         results = _build_db_uri(config)
 
-        assert results == "postgresql+psycopg://localhost/databse.db"
+        assert results == "postgresql+psycopg://localhost/database.db"
 
     def test_production_nonpostgres_uri_raises_error(self):
         config = MagicMock(spec=DBConfig)
         config.env_type = EnvType.PRODUCTION
-        config.db_uri = "postgresss://localhost/databse.db"
+        config.db_uri = "postgresss://localhost/database.db"
 
-        with pytest.raises(ValueError, f"{config.db_uri} is not a progres uri."):
+        with pytest.raises(ValueError, match=f"{config.db_uri} is not a postgres uri."):
             _build_db_uri(config)
 
 
@@ -115,7 +115,7 @@ class TestInitDb:
         init_db()
 
         inspector = inspect(setup_test_db)
-        table_names = inspector.get_tables_names()
+        table_names = inspector.get_table_names()
 
         assert len(table_names) > 0
 

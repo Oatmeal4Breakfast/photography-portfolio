@@ -28,7 +28,7 @@ class TestDBConfig:
             os.environ, {"DB_URI": "postgres://some_url_here", "ENV_TYPE": "production"}
         ):
             config = DBConfig.from_env()
-            assert config.db_uri == "postgresql+psycopg://some_url_here"
+            assert config.db_uri == "postgres://some_url_here"
             assert config.env_type == EnvType.PRODUCTION
 
     def test_null_db_uri_env(self):
