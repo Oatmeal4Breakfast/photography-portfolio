@@ -3,27 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Elvin Salcedo</title>
-    <link href="static/css/style.css" rel="stylesheet" />
+    <title>{% block title %}Elvin Salcedo{% endblock %}</title>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="{{ url_for('static', path='/css/output.css') }}"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <header id="header">
-      <div id="logo"></div>
-      <div id="top-nav">
-        <nav class="main-nav">
-          <ul>
-            <li>
-              <a href="#"> Home </a>
-            </li>
-            <li>
-              <a href="#">Collections</a>
-            </li>
-            <li>
-              <a href="#"> About </a>
-            </li>
+    <header>
+      <nav class="flex">
+        <div class="flex-auto my-4 mx-8">
+          <a href="/" class="text-3xl font-display font-medium tracking-widest"
+            >Elvin Salcedo</a
+          >
+        </div>
+
+        <div class="flex items-center">
+          <ul class="flex space-x-4 my-4 mx-8 font-light text-stone-600">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Collections</a></li>
+            <li><a href="#">About</a></li>
           </ul>
-        </nav>
-      </div>
+        </div>
+      </nav>
     </header>
+    <main>{% block content %}{% endblock %}</main>
   </body>
 </html>
