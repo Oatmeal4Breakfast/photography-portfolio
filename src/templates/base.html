@@ -16,9 +16,15 @@
       href="{{ url_for('static', path='/css/output.css') }}"
       rel="stylesheet"
     />
+    <script
+      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+      integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz"
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
     <header>
+      {% set active_page = active_page|default('home') %}
       <nav class="flex">
         <div class="flex-auto my-4 mx-8">
           <a href="/" class="text-3xl font-display font-medium tracking-widest"
@@ -28,9 +34,27 @@
 
         <div class="flex items-center">
           <ul class="flex space-x-4 my-4 mx-8 font-light text-stone-600">
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Collections</a></li>
-            <li><a href="#">About</a></li>
+            <li>
+              <a
+                href="{{ url_for('home') }}"
+                class="{% if active_page == 'home' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                >Home</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="{% if active_page == 'collections' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                >Collections</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="{% if active_page == 'about' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                >About</a
+              >
+            </li>
           </ul>
         </div>
       </nav>
