@@ -1,7 +1,19 @@
 from io import BytesIO
+from src.config import Config, EnvType
 from pathlib import Path
 from PIL import Image
 import uuid
+
+
+def _get_output_path(file_name: str, subdir: str) -> str:
+    config: Config = Config.from_env()
+
+    if config.env_type == EnvType.DEVELOPMENT:
+        path: Path = Path(config.uploads_base_path) / subdir / file_name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return str(path)
+    else:
+        return f"{config.uploads_base_path}/{subdir}/{file_name}"
 
 
 def _sanitize_file(file_name: str) -> str:
@@ -24,11 +36,13 @@ def create_thumbnail(
 
     size = (300, 300)
 
-    unique_file_name = _sanitize_file(original_filename)
-    path_to_save = Path(output_path) / unique_file_name
+    unique_file_name: str = _sanitize_file(file_name=original_filename)
+    path_to_save = Path(
+        _get_output_path(file_name=unique_file_name, subdir="thumbnail")
+    )
 
     try:
-        with Image.open(BytesIO(file)) as img:
+        with Image.open(fp=BytesIO(initial_bytes=file)) as img:
             img.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
             img.save(path_to_save, format="JPEG")
             return str(path_to_save)
@@ -41,8 +55,10 @@ def create_original(
 ) -> None:
     if not file:
         raise ValueError("No file provided")
-    stem = Path(original_filename).stem
-    path_to_save = Path(output_path) / f"{stem}.jpeg"
+    unique_file_name: str = _sanitize_file(file_name=original_filename)
+    path_to_save: Path = Path(
+        _get_output_path(file_name=unique_file_name, subdir="original")
+    )
 
     try:
         with Image.open(BytesIO(file)) as img:

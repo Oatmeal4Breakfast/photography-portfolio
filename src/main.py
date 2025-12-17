@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile
+from typing import Annotated
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,6 +9,7 @@ from contextlib import asynccontextmanager
 from src.models.models import Photo, Comment, User
 from src.database import init_db, get_db
 from src.config import Config, EnvType
+from src.services.image_processor import create_thumbnail, create_original
 
 
 @asynccontextmanager
@@ -38,5 +40,12 @@ async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
 
 
-# @app.post("/admin/uploads")
-# async def uploads(request:Request):
+@app.post(path="/admin/uploads")
+async def uploads_photo(
+    file: Annotated[UploadFile, File()],
+    title: str = Form(),
+    description: str = Form(default=None),
+    collection: str = Form(default=None),
+    db=Depends(dependency=get_db),
+):
+    data: bytes = await file.read()
