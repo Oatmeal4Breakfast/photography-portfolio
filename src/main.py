@@ -7,12 +7,12 @@ from contextlib import asynccontextmanager
 
 from src.models.models import Photo, Comment, User
 from src.database import init_db, get_db
-from src.config import DBConfig, EnvType
+from src.config import Config, EnvType
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = DBConfig.from_env()
+    config = Config.from_env()
     if config.env_type == EnvType.DEVELOPMENT:
         init_db()
     yield

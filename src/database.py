@@ -2,14 +2,14 @@ from typing import Annotated, Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.models.models import Base
-from src.config import DBConfig, EnvType
+from src.config import Config, EnvType
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
-def _build_db_uri(config: DBConfig) -> str:
+def _build_db_uri(config: Config) -> str:
     "Build the db uri"
     if config.env_type == EnvType.DEVELOPMENT:
         if config.db_uri.startswith("sqlite:///"):
@@ -38,7 +38,7 @@ def _create_db_engine(db_uri: str) -> Engine:
     return create_engine(db_uri, connect_args={"check_same_thread": False})
 
 
-config = DBConfig.from_env()
+config = Config.from_env()
 db_uri = _build_db_uri(config)
 engine = _create_db_engine(db_uri)
 SessionLocal = sessionmaker(engine)

@@ -1,16 +1,16 @@
 import pytest
 import os
 from unittest.mock import patch
-from src.config import DBConfig, EnvType
+from src.config import Config, EnvType
 
 
-class TestDBConfig:
+class TestConfig:
     def test_from_env_success_development(self):
         with patch.dict(
             os.environ,
             {"DB_URI": "sqlite:///inventory/database.db", "ENV_TYPE": "development"},
         ):
-            config = DBConfig.from_env()
+            config = Config.from_env()
             assert config.db_uri == "sqlite:///inventory/database.db"
             assert config.env_type == EnvType.DEVELOPMENT
 
@@ -19,7 +19,7 @@ class TestDBConfig:
             os.environ,
             {"DB_URI": "postgresql://some_url_here", "ENV_TYPE": "production"},
         ):
-            config = DBConfig.from_env()
+            config = Config.from_env()
             assert config.db_uri == "postgresql://some_url_here"
             assert config.env_type == EnvType.PRODUCTION
 
@@ -27,21 +27,21 @@ class TestDBConfig:
         with patch.dict(
             os.environ, {"DB_URI": "postgres://some_url_here", "ENV_TYPE": "production"}
         ):
-            config = DBConfig.from_env()
+            config = Config.from_env()
             assert config.db_uri == "postgres://some_url_here"
             assert config.env_type == EnvType.PRODUCTION
 
     def test_null_db_uri_env(self):
         with patch.dict(os.environ, {"ENV_TYPE": "development"}, clear=True):
             with pytest.raises(ValueError, match="Missing env variables"):
-                DBConfig.from_env()
+                Config.from_env()
 
     def test_null_env_type_env(self):
         with patch.dict(
             os.environ, {"DB_URI": "sqlite:///inventory/database.db"}, clear=True
         ):
             with pytest.raises(ValueError, match="Missing env variables"):
-                DBConfig.from_env()
+                Config.from_env()
 
     def test_invalid_env_type(self):
         with patch.dict(
@@ -49,7 +49,7 @@ class TestDBConfig:
             {"DB_URI": "sqlite:///inventory/database.db", "ENV_TYPE": "staging"},
         ):
             with pytest.raises(ValueError, match="staging is not a valid type"):
-                DBConfig.from_env()
+                Config.from_env()
 
 
 class TestEnvType:

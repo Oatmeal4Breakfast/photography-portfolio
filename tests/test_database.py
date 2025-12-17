@@ -1,9 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
-from sqlalchemy import create_engine, engine, inspect, text
+from sqlalchemy import create_engine, inspect, text
 
-from src.config import DBConfig, EnvType
+from src.config import Config, EnvType
 from src.database import (
     init_db,
     get_db,
@@ -41,7 +40,7 @@ def db_session(setup_test_db):
 
 class TestBuildUrl:
     def test_development_sqlite_creates_absolute_path(self, tmp_path):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "sqlite:///test.db"
 
@@ -53,7 +52,7 @@ class TestBuildUrl:
             assert "test.db" in result
 
     def test_development_sqlite_creates_nested_directorys(self, tmp_path):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "sqlite:///data/nested/test.db"
 
@@ -64,7 +63,7 @@ class TestBuildUrl:
             assert expected_dir.exists()
 
     def test_development_sqlite_raises_error(self):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "postgres://local_host"
 
@@ -72,7 +71,7 @@ class TestBuildUrl:
             _build_db_uri(config)
 
     def test_production_postgres_appends_psycopg(self):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.PRODUCTION
         config.db_uri = "postgres://localhost/database.db"
 
@@ -80,7 +79,7 @@ class TestBuildUrl:
         assert results == "postgresql+psycopg://localhost/database.db"
 
     def test_production_postgresql_appends_psycopg(self):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.PRODUCTION
         config.db_uri = "postgresql://localhost/database.db"
 
@@ -89,7 +88,7 @@ class TestBuildUrl:
         assert results == "postgresql+psycopg://localhost/database.db"
 
     def test_production_nonpostgres_uri_raises_error(self):
-        config = MagicMock(spec=DBConfig)
+        config = MagicMock(spec=Config)
         config.env_type = EnvType.PRODUCTION
         config.db_uri = "postgresss://localhost/database.db"
 

@@ -14,7 +14,7 @@ class EnvType(Enum):
 
 
 @dataclass
-class DBConfig:
+class Config:
     db_uri: str
     env_type: EnvType
 
