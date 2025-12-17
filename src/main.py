@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -31,3 +31,12 @@ async def home(request: Request):
         request=request,
         name="index.html",
     )
+
+
+@app.get("/admin/upload", response_class=HTMLResponse)
+async def upload_form(request: Request):
+    return templates.TemplateResponse(request=request, name="upload.html")
+
+
+# @app.post("/admin/uploads")
+# async def uploads(request:Request):
