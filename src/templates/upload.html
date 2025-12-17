@@ -2,93 +2,137 @@
 
 <!-- main content -->
 {% block content %}
-<div class="container">
-  <h1
-    class="flex flex-col mx-auto my-10 items-center justify-center text-xl font-medium tracking-wide"
-  >
-    Upload Your Image
-  </h1>
+<main>
+  <section class="container mx-auto p-8">
+   <div class="text-center mb-12 ">
+      <h1 class="text-4xl font-bold">Upload Your Image</h1>
+    </div> 
+  </section>
+  <section class="container mx-auto px-8">
+    <div class="max-w-2xl mx-auto  p-8">
+      <form action="/admin/upload" method="POST" enctype=multipart/form-data>
+        <div class="flex flex-col gap-2">
+            <label for="title" id="title">Title</label>
+            <input type="text" name="title" required value="Enter the name of the photo" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="collection" id="collection">Collection</label>
+            <input type="text" name="collection" value="Collection Name" required class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="description" id="description">Description</label> 
+            <textarea id="description" name="description" required class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8"></textarea>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="file_upload" id="file_upload">File</label>
+            <input type="file" name="file_upload" requred class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8">
+          </div>
+          <div class="flex flex-col">
+            <button type="Submit" class="btn btn-primary bg-orange-500 text-white fond-bold py-2 mb-8 hover:bg-orange-600 rounded-md ">Upload</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
 
-  <form
-    action="/admin/upload"
-    method="POST"
-    enctype="multipart/form-data"
-    class="flex-col gap-4 mx-auto my-10 items-center justify-center"
-  >
-    <div class="mb-3">
-      <label for="file: " class="form-label">Photo: </label>
-      <input
-        type="file"
-        class="form-control"
-        id="file"
-        name="file"
-        accept="image/*"
-        required
-      />
-    </div>
 
-    <div class="mb-3">
-      <label for="title" class="form-label">Title: </label>
-      <input
-        type="text"
-        class="form-control"
-        id="title"
-        name="title"
-        required
-      />
-    </div>
 
-    <div class="mb-3">
-      <label for="description" class="form-label">Description: </label>
-      <textarea
-        class="form-control"
-        id="description"
-        name="description"
-        rows="3"
-      ></textarea>
-    </div>
 
-    <div class="mb-3">
-      <label for="category" class="form-label">Category: </label>
-      <input type="text" class="form-control" id="category" name="category" />
-    </div>
 
-    <button
-      type="submit"
-      class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
-    >
-      <span>Upload</span>
-    </button>
-  </form>
 
-  <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="w-full max-w-sm">
-  <div class="md:flex md:items-center mb-6">
-    <div class="md:w-1/3">
-      <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="title">
-        Title
-      </label>
-    </div>
-    <div class="md:w-2/3">
-      <input class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-full-name" type="text" value="Image Title">
-    </div>
-  </div>
-  <div class="md:flex md:items-center mb-6">
-    <div class="md:w-1/3">
-      <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="decription">
-        Description
-      </label>
-    </div>
-    <div class="md:w-2/3">
-      <textarea class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-password" type="password" placeholder="Some Description of the Photo here.">      </textarea>
-    </div>
-  </div>
-  <div class="md:flex md:items-center">
-    <div class="md:w-1/3"></div>
-    <div class="md:w-2/3">
-      <button class="shadow bg-orange-500 hover:bg-orange-600 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded" type="button">
-        Sign Up
-      </button>
-    </div>
-  </div>
-</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {% endblock %}

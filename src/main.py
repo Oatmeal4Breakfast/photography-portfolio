@@ -12,7 +12,7 @@ from src.config import Config, EnvType
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = Config.from_env()
+    config: Config = Config.from_env()
     if config.env_type == EnvType.DEVELOPMENT:
         init_db()
     yield
@@ -20,12 +20,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
+app.mount(path="/static", app=StaticFiles(directory="src/static"), name="static")
 
 templates = Jinja2Templates(directory="src/templates")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get(path="/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
         request=request,
@@ -33,7 +33,7 @@ async def home(request: Request):
     )
 
 
-@app.get("/admin/upload", response_class=HTMLResponse)
+@app.get(path="/admin/upload", response_class=HTMLResponse)
 async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
 
