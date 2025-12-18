@@ -38,10 +38,10 @@ def _create_db_engine(db_uri: str) -> Engine:
     return create_engine(db_uri, connect_args={"check_same_thread": False})
 
 
-config = Config.from_env()
-db_uri = _build_db_uri(config)
-engine = _create_db_engine(db_uri)
-SessionLocal = sessionmaker(engine)
+config: Config = Config.from_env()
+db_uri: str = _build_db_uri(config)
+engine: Engine = _create_db_engine(db_uri)
+SessionLocal: sessionmaker[Session] = sessionmaker(bind=engine)
 
 
 def init_db() -> None:
@@ -51,15 +51,8 @@ def init_db() -> None:
 
 def get_db() -> Generator[Session, None, None]:
     """Generator function to yield a db session"""
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
-
-def _override_engine_for_tests(test_engine: Engine) -> None:
-    """Override the engine with a test_engine for testing purposes"""
-    global engine, SessionLocal
-    engine = test_engine
-    SessionLocal = sessionmaker(engine)

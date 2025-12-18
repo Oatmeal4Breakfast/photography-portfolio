@@ -8,7 +8,7 @@ from alembic import context
 import sys
 from src.database import PROJECT_ROOT
 from src.models.models import Base
-from src.config import DBConfig
+from src.config import Config
 
 from pathlib import Path
 
@@ -20,7 +20,7 @@ sys.path.append(str(PROJECT_ROOT))
 config = context.config
 
 
-db_config = DBConfig.from_env()
+db_config: Config = Config.from_env()
 if db_config.db_uri.startswith("sqlite:///") and not db_config.db_uri.startswith(
     "sqlite:////"
 ):

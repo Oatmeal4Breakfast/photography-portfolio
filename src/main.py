@@ -20,6 +20,8 @@ from src.models.models import Photo, Comment, User
 from src.database import init_db, get_db
 from src.config import Config, EnvType
 from src.services.image_processor import create_thumbnail, create_original
+from src.utils.file_utils import sanitize_file
+from src.utils.hash import get_hash, photo_hash_exists
 
 
 @asynccontextmanager
@@ -45,7 +47,7 @@ async def home(request: Request):
     )
 
 
-@app.get(path="/admin/upload", response_class=HTMLResponse)
+@app.get(path="/admin/upload", response_class=HTMLResponse, name="upload_form")
 async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
 
@@ -57,7 +59,7 @@ async def uploads_photo(
     description: Annotated[str, Form()],
     collection: Annotated[str, Form()],
     request: Request,
-    db=Annotated[Session, Depends(dependency=get_db)],
+    db: Annotated[Session, Depends(dependency=get_db)],
 ):
     if not file.filename:
         raise HTTPException(
@@ -97,13 +99,17 @@ async def uploads_photo(
             detail="Title too long. Max: 50",
         )
 
+    file_hash: str = get_hash(file_data=file_data)
+    if photo_hash_exists(hash=file_hash, db=db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"file with hash: {file_hash} already exists",
+        )
+    file_name: str = sanitize_file(file_name=file.filename)
+
     try:
-        thumbnail_path: str = create_thumbnail(
-            file=file_data, original_filename=file.filename
-        )
-        original_img_path: str = create_original(
-            file=file_data, original_filename=file.filename
-        )
+        thumbnail_path: str = create_thumbnail(file=file_data, file_name=file_name)
+        original_img_path: str = create_original(file=file_data, file_name=file_name)
 
     except ValueError as e:
         raise HTTPException(
@@ -121,14 +127,11 @@ async def uploads_photo(
             detail=f"Internal Server error: {e}",
         )
 
-    unique_file_name: str = Path(thumbnail_path).stem
-    unique_file_name_sufix: str = Path(thumbnail_path).suffix
-
     try:
         new_image: Photo = Photo(
             title=title,
-            description=description,
-            file_name=f"{unique_file_name}.{unique_file_name_sufix}",
+            hash=file_hash,
+            file_name=file_name,
             original_path=original_img_path,
             thumbnail_path=thumbnail_path,
             collection=collection,
@@ -136,10 +139,8 @@ async def uploads_photo(
 
         db.add(new_image)
         db.commit()
-        db.refresh(new_image)
-
     except Exception:
         db.rollback()
 
     redirect_url = request.url_for("upload_form")
-    return RedirectResponse(url=redirect_url)
+    return RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)

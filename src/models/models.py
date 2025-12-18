@@ -24,7 +24,8 @@ class Photo(Base):
     __tablename__ = "photo"
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
     title: Mapped[str] = mapped_column(String(length=50), nullable=False)
-    description: Mapped[str] = mapped_column(String(length=300), nullable=True)
+    hash: Mapped[str] = mapped_column(String(length=64), nullable=False, unique=True)
+    # description: Mapped[str] = mapped_column(String(length=300), nullable=True)
     file_name: Mapped[str] = mapped_column(
         String(length=50), nullable=False, unique=True
     )
