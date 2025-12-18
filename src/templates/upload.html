@@ -10,7 +10,7 @@
   </section>
   <section class="container mx-auto px-8">
     <div class="max-w-2xl mx-auto  p-8">
-      <form action="/admin/upload" method="POST" enctype=multipart/form-data>
+      <form action="/admin/upload" method="POST" enctype="multipart/form-data">
         <div class="flex flex-col gap-2">
             <label for="title" id="title">Title</label>
             <input type="text" name="title" required value="Enter the name of the photo" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8">
@@ -24,8 +24,8 @@
             <textarea id="description" name="description" required class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8"></textarea>
           </div>
           <div class="flex flex-col gap-2">
-            <label for="file_upload" id="file_upload">File</label>
-            <input type="file" name="file_upload" requred class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8">
+            <label for="file" id="file">File</label>
+            <input type="file" name="file" required accept="image/*" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8">
           </div>
           <div class="flex flex-col">
             <button type="Submit" class="btn btn-primary bg-orange-500 text-white fond-bold py-2 mb-8 hover:bg-orange-600 rounded-md ">Upload</button>
@@ -35,104 +35,4 @@
     </div>
   </section>
 </main>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 {% endblock %}

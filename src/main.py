@@ -1,9 +1,19 @@
+from pathlib import Path
 from typing import Annotated
-from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    Request,
+    Form,
+    UploadFile,
+    File,
+    status,
+)
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
 from src.models.models import Photo, Comment, User
@@ -40,12 +50,96 @@ async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
 
 
-@app.post(path="/admin/uploads")
+@app.post(path="/admin/upload")
 async def uploads_photo(
     file: Annotated[UploadFile, File()],
-    title: str = Form(),
-    description: str = Form(default=None),
-    collection: str = Form(default=None),
-    db=Depends(dependency=get_db),
+    title: Annotated[str, Form()],
+    description: Annotated[str, Form()],
+    collection: Annotated[str, Form()],
+    request: Request,
+    db=Annotated[Session, Depends(dependency=get_db)],
 ):
-    data: bytes = await file.read()
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No filename or file not uploaded",
+        )
+
+    allowed_img_type: list[str] = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if file.content_type not in allowed_img_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_img_type)}",
+        )
+
+    MAX_IMAGE_SIZE: int = 10 * 1024 * 1024
+    file_data: bytes = await file.read()
+
+    if len(file_data) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"file too large. Max size {MAX_IMAGE_SIZE / (1024 * 1024)} MB",
+        )
+
+    if len(file_data) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file"
+        )
+
+    if not title or not title.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Title cannot be empty"
+        )
+
+    if len(title) > 50:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Title too long. Max: 50",
+        )
+
+    try:
+        thumbnail_path: str = create_thumbnail(
+            file=file_data, original_filename=file.filename
+        )
+        original_img_path: str = create_original(
+            file=file_data, original_filename=file.filename
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"invalid image {e}"
+        )
+
+    except IOError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error saving image: {e}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal Server error: {e}",
+        )
+
+    unique_file_name: str = Path(thumbnail_path).stem
+    unique_file_name_sufix: str = Path(thumbnail_path).suffix
+
+    try:
+        new_image: Photo = Photo(
+            title=title,
+            description=description,
+            file_name=f"{unique_file_name}.{unique_file_name_sufix}",
+            original_path=original_img_path,
+            thumbnail_path=thumbnail_path,
+            collection=collection,
+        )
+
+        db.add(new_image)
+        db.commit()
+        db.refresh(new_image)
+
+    except Exception:
+        db.rollback()
+
+    redirect_url = request.url_for("upload_form")
+    return RedirectResponse(url=redirect_url)

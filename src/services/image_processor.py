@@ -25,7 +25,6 @@ def _sanitize_file(file_name: str) -> str:
 
 def create_thumbnail(
     file: bytes,
-    output_path: str | Path,
     original_filename: str,
 ) -> str:
     """
@@ -50,18 +49,20 @@ def create_thumbnail(
         raise IOError(f"Failed to save thumbnail {e}")
 
 
-def create_original(
-    file: bytes, output_path: str | Path, original_filename: str
-) -> None:
+def create_original(file: bytes, original_filename: str) -> str:
+    """returns path to save file of the original size"""
+
     if not file:
         raise ValueError("No file provided")
+
     unique_file_name: str = _sanitize_file(file_name=original_filename)
     path_to_save: Path = Path(
         _get_output_path(file_name=unique_file_name, subdir="original")
     )
 
     try:
-        with Image.open(BytesIO(file)) as img:
+        with Image.open(fp=BytesIO(initial_bytes=file)) as img:
             img.save(path_to_save, format="JPEG")
+            return str(path_to_save)
     except Exception as e:
         raise IOError(f"Failed to save file {e}")
