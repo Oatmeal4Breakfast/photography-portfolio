@@ -10,7 +10,6 @@ from src.database import PROJECT_ROOT
 from src.models.models import Base
 from src.config import Config
 
-from pathlib import Path
 
 sys.path.append(str(PROJECT_ROOT))
 

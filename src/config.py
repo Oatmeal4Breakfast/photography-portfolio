@@ -1,5 +1,3 @@
-from jinja2.utils import missing
-from pygments.lexers.javascript import NodeConsoleLexer
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from enum import Enum

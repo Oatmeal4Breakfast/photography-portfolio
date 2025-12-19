@@ -1,4 +1,4 @@
-from typing import Annotated, Generator
+from typing import Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.models.models import Base

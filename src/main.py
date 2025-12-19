@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Annotated
 from fastapi import (
     FastAPI,
@@ -16,10 +15,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
-from src.models.models import Photo, Comment, User
+from src.models.models import Photo
 from src.database import init_db, get_db
 from src.config import Config, EnvType
 from src.services.image_processor import create_thumbnail, create_original
+from src.services.crud import (
+    add_photo,
+)
 from src.utils.file_utils import sanitize_file
 from src.utils.hash import get_hash, photo_hash_exists
 
@@ -128,7 +130,7 @@ async def uploads_photo(
         )
 
     try:
-        new_image: Photo = Photo(
+        new_photo: Photo = Photo(
             title=title,
             hash=file_hash,
             file_name=file_name,
@@ -136,9 +138,7 @@ async def uploads_photo(
             thumbnail_path=thumbnail_path,
             collection=collection,
         )
-
-        db.add(new_image)
-        db.commit()
+        add_photo(photo=new_photo, db=db)
     except Exception:
         db.rollback()
 
