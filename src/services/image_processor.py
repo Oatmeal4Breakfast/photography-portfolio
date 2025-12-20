@@ -53,3 +53,11 @@ def create_original(file: bytes, file_name: str) -> str:
             return str(path_to_save)
     except Exception as e:
         raise IOError(f"Failed to save file {e}")
+
+
+def delete_from_image_store(photo_paths: list[str | Path]):
+    """deletes images from the file store"""
+    for path in photo_paths:
+        item: Path = Path(path)
+        if item.is_file():
+            item.unlink(missing_ok=True)

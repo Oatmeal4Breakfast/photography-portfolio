@@ -35,7 +35,7 @@ def get_photos_by_collection(collection_name: str, db: Session) -> Sequence[Phot
     return db.execute(statement=query).scalars().all()
 
 
-def get_hero_image(db: Session) -> str | None:
+def get_hero_photo(db: Session) -> str | None:
     """queries the db for the hero image. Returns path to image"""
     query: Select[tuple[str]] = select(Photo.thumbnail_path).where(
         Photo.file_name.contains(other="hero")
@@ -46,4 +46,10 @@ def get_hero_image(db: Session) -> str | None:
 def add_photo(photo: Photo, db: Session) -> None:
     """add photo to the db"""
     db.add(instance=photo)
+    db.commit()
+
+
+def delete_photo_from_db(photo: Photo, db: Session) -> None:
+    """deletes a photo"""
+    db.delete(instance=photo)
     db.commit()
