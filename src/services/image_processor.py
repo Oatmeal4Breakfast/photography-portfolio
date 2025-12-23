@@ -7,13 +7,10 @@ from src.config import Config, EnvType
 
 def _get_output_path(file_name: str, subdir: str) -> str:
     config: Config = Config.from_env()
-
+    path: Path = Path("uploads") / subdir / file_name
     if config.env_type == EnvType.DEVELOPMENT:
-        path: Path = Path(config.uploads_base_path) / subdir / file_name
         path.parent.mkdir(parents=True, exist_ok=True)
-        return str(path)
-    else:
-        return f"{config.uploads_base_path}/{subdir}/{file_name}"
+    return str(path)
 
 
 def create_thumbnail(

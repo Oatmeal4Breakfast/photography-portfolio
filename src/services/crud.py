@@ -37,7 +37,7 @@ def get_photos_by_collection(collection_name: str, db: Session) -> Sequence[Phot
 
 def get_hero_photo(db: Session) -> str | None:
     """queries the db for the hero image. Returns path to image"""
-    query: Select[tuple[str]] = select(Photo.thumbnail_path).where(
+    query: Select[tuple[str]] = select(Photo.original_path).where(
         Photo.file_name.contains(other="hero")
     )
     return db.execute(statement=query).scalar_one_or_none()

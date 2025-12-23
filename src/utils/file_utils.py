@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+from src.config import Config
 
 
 def sanitize_file(file_name: str) -> str:
@@ -7,3 +8,8 @@ def sanitize_file(file_name: str) -> str:
     stem: str = Path(file_name).stem
     sanitized_stem: str = stem.replace(" ", "_")[:50]
     return f"{sanitized_stem}_{uuid.uuid4().hex[:8]}.jpeg"
+
+
+def build_photo_url(path: str | None) -> str:
+    config: Config = Config.from_env()
+    return f"{config.image_store_url}/{path}"

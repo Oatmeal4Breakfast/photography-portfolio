@@ -1,4 +1,5 @@
 from typing import Annotated
+from pathlib import Path
 from fastapi import (
     FastAPI,
     Depends,
@@ -21,8 +22,9 @@ from src.config import Config, EnvType
 from src.services.image_processor import create_thumbnail, create_original
 from src.services.crud import (
     add_photo,
+    get_hero_photo,
 )
-from src.utils.file_utils import sanitize_file
+from src.utils.file_utils import sanitize_file, build_photo_url
 from src.utils.hash import get_hash, photo_hash_exists
 
 
@@ -37,15 +39,25 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.mount(path="/static", app=StaticFiles(directory="src/static"), name="static")
+app.mount(
+    path="/uploads",
+    app=StaticFiles(directory="uploads"),
+    name="uploads",
+)
 
 templates = Jinja2Templates(directory="src/templates")
 
 
 @app.get(path="/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request, db: Annotated[Session, Depends(dependency=get_db)]):
+    thumbnail_path: str | None = get_hero_photo(db=db)
+    if thumbnail_path is None:
+        thumbnail_path: str = "/static/images/fallback_hero.jpeg"
+    photo_path: str = build_photo_url(path=thumbnail_path)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
+        context={"request": request, "photo": photo_path},
     )
 
 
