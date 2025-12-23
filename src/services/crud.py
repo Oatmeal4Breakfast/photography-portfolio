@@ -26,12 +26,20 @@ def get_photo_by_file_name(file_name: str, db: Session) -> Photo | None:
 
 
 def get_photos_by_collection(collection_name: str, db: Session) -> Sequence[Photo]:
+    """queries the db by collectio name"""
+
     if collection_name is None:
         raise ValueError("collection_name cannot be empty")
 
     query: Select[tuple[Photo]] = select(Photo).where(
         Photo.collection.like(other=collection_name)
     )
+    return db.execute(statement=query).scalars().all()
+
+
+def get_all_photos(db: Session) -> Sequence[Photo]:
+    """retrieves all photos in the db"""
+    query: Select[tuple[Photo]] = select(Photo)
     return db.execute(statement=query).scalars().all()
 
 

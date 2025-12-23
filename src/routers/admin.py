@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Sequence
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter
@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from src.utils.hash import get_hash, photo_hash_exists
 from src.utils.file_utils import sanitize_file
 
-from src.services.crud import add_photo
+from src.services.crud import add_photo, get_all_photos
 from src.services.image_processor import create_original, create_thumbnail
 
 from src.models.models import Photo
@@ -125,3 +125,20 @@ async def uploads_photo(
 
     redirect_url = request.url_for("upload_form")
     return RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
+
+
+@router.get(path="/photos")
+async def view_photos(
+    request: Request, db: Annotated[Session, Depends(dependency=get_db)]
+):
+    photos: Sequence[Photo] = get_all_photos(db=db)
+    if len(photos) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error. Could not find photos.",
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="view.html",
+        context={"request": request, "photos": photos},
+    )
