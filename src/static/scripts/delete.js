@@ -1,9 +1,58 @@
-let selectedPhotoIds = []
+let selectedPhotoIds = [];
 
-const photoGrid = document.getElementByID('photo-grid')
-const deleteBtn = document.getElementByID('delete-btn')
-const countSpan = document.getElementByID('count')
+const photoGrid = document.getElementById("photo-grid");
+const deleteBtn = document.getElementById("delete-btn");
+const countSpan = document.getElementById("count");
 
-photoGrid.addEventListener('click', function(event) {
+photoGrid.addEventListener("click", function (event) {
+  const photoItem = event.target.closest(".photo-item");
 
+  if (!photoItem) return;
+
+  const photoId = photoItem.dataset.photoId;
+
+  if (selectedPhotoIds.includes(photoId)) {
+    selectedPhotoIds = selectedPhotoIds.filter((id) => id !== photoId);
+    photoItem.classList.remove("opacity-50");
+  } else {
+    selectedPhotoIds.push(photoId);
+    photoItem.classList.add("opacity-50");
+  }
+  updateDeleteButton();
+});
+
+function updateDeleteButton() {
+  countSpan.textContent = selectedPhotoIds.length;
+  deleteBtn.disabled = selectedPhotoIds.length === 0;
 }
+
+deleteBtn.addEventListener("click", async function () {
+  if (selectedPhotoIds.length === 0) return;
+
+  if (!confirm(`Delete ${selectedPhotoIds.length} photos?`)) return;
+
+  deleteBtn.disabled = true;
+  deleteBtn.textContent = "Deleting...";
+
+  try {
+    const response = await fetch("/admin/photos/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ photo_ids: selectedPhotoIds }),
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      alert("Error deleting photos");
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
+    }
+  } catch (error) {
+    alert("Network Error: " + error.message);
+    deleteBtn.disabled = false;
+    deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
+  }
+});

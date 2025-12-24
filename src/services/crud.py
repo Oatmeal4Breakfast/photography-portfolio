@@ -25,6 +25,13 @@ def get_photo_by_file_name(file_name: str, db: Session) -> Photo | None:
     return db.execute(statement=query).scalars().one_or_none()
 
 
+def get_photo_by_id(id: int, db: Session) -> Photo | None:
+    if id is None or id == 0:
+        raise ValueError("id cannot be empty")
+    query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
+    return db.execute(statement=query).scalar_one_or_none()
+
+
 def get_photos_by_collection(collection_name: str, db: Session) -> Sequence[Photo]:
     """queries the db by collectio name"""
 

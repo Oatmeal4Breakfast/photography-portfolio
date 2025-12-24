@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% set activate_page = "view" %} {% block title %}
 Admin - view {% endblock %} {% block content %}
 
-
+<script type="text/javascript" src="/static/scripts/delete.js" defer></script>
 
 <section class="container mx-auto p-2">
   <div class="flex justify-end">
@@ -10,7 +10,7 @@ Admin - view {% endblock %} {% block content %}
   </div> 
   <div id="photo-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 m-8">  
   {% for photo in photos %}                                             
-  <div class="aspect-square overflow-hidden photo-item" id="{{ photo.id }}">                           
+  <div class="photo-item aspect-square overflow-hidden photo-item" data-photo-id="{{ photo.id }}">                           
       <img src="{{ photo.path }}" alt="" class="w-full h-full object-cover"/> 
     </div>                                                                
   {% endfor %}                                                          

@@ -17,10 +17,20 @@ from fastapi.templating import Jinja2Templates
 from src.utils.hash import get_hash, photo_hash_exists
 from src.utils.file_utils import sanitize_file, build_photo_url
 
-from src.services.crud import add_photo, get_all_photos
-from src.services.image_processor import create_original, create_thumbnail
+from src.services.crud import (
+    add_photo,
+    get_all_photos,
+    get_photo_by_id,
+    delete_photo_from_db,
+)
+from src.services.image_processor import (
+    create_original,
+    create_thumbnail,
+    delete_from_image_store,
+)
 
 from src.models.models import Photo
+from src.models.responses import DeletePhotoPayload
 
 from src.database import get_db
 
@@ -152,3 +162,30 @@ async def view_photos(
         name="view.html",
         context={"request": request, "photos": image_data},
     )
+
+
+@router.post(path="/photos/delete")
+async def delete_photos(
+    payload: DeletePhotoPayload, db: Annotated[Session, Depends(dependency=get_db)]
+):
+    photo_ids: list[int] = payload.photo_ids
+    if not photo_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No photos selected",
+        )
+
+    for photo_id in photo_ids:
+        photo: Photo | None = get_photo_by_id(id=photo_id, db=db)
+        if photo is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Photo not found in db",
+            )
+        try:
+            delete_photo_from_db(photo=photo, db=db)
+            delete_from_image_store(
+                photo_paths=[photo.thumbnail_path, photo.original_path]
+            )
+        except Exception as e:
+            raise Exception(f"Error: {e}")
