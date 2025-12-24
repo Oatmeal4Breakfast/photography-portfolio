@@ -15,7 +15,7 @@ from fastapi import (
 from fastapi.templating import Jinja2Templates
 
 from src.utils.hash import get_hash, photo_hash_exists
-from src.utils.file_utils import sanitize_file
+from src.utils.file_utils import sanitize_file, build_photo_url
 
 from src.services.crud import add_photo, get_all_photos
 from src.services.image_processor import create_original, create_thumbnail
@@ -137,8 +137,18 @@ async def view_photos(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error. Could not find photos.",
         )
+
+    image_data: list[dict[str, str | int]] = []
+    for photo in photos:
+        path: str | None = build_photo_url(path=photo.thumbnail_path)
+        photo
+        if path is None:
+            image_data.append({"id": photo.id, "path": ""})
+        else:
+            image_data.append({"id": photo.id, "path": path})
+
     return templates.TemplateResponse(
         request=request,
         name="view.html",
-        context={"request": request, "photos": photos},
+        context={"request": request, "photos": image_data},
     )

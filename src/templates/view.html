@@ -1,10 +1,20 @@
 {% extends "base.html" %} {% set activate_page = "view" %} {% block title %}
 Admin - view {% endblock %} {% block content %}
 
-<div>
-  <div>
-    <h1>Hello</h1>
-  </div>
-</div>
+
+
+<section class="container mx-auto p-2">
+  <div class="flex justify-end">
+    <span id="count">0</span>
+    <button type="Submit" id="delete-btn" class="btn btn-primary bg-orange-500 text-white font-bold hover:bg-orange-600 rounded-md shadow p-2 px-5 m-8"> Delete</button> 
+  </div> 
+  <div id="photo-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 m-8">  
+  {% for photo in photos %}                                             
+  <div class="aspect-square overflow-hidden photo-item" id="{{ photo.id }}">                           
+      <img src="{{ photo.path }}" alt="" class="w-full h-full object-cover"/> 
+    </div>                                                                
+  {% endfor %}                                                          
+  </div>                                                                  
+</section>
 
 {% endblock %}
