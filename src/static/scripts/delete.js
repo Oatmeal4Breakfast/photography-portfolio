@@ -22,8 +22,12 @@ photoGrid.addEventListener("click", function (event) {
 });
 
 function updateDeleteButton() {
-  countSpan.textContent = selectedPhotoIds.length;
-  deleteBtn.disabled = selectedPhotoIds.length === 0;
+  const count = selectedPhotoIds.length;
+
+  countSpan.textContent = count;
+  deleteBtn.disabled = count === 0;
+
+  countSpan.hidden = count === 0;
 }
 
 deleteBtn.addEventListener("click", async function () {

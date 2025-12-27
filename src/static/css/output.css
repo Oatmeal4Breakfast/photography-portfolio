@@ -15,11 +15,8 @@
     --color-stone-600: oklch(44.4% 0.011 73.639);
     --color-white: #fff;
     --spacing: 0.25rem;
-    --container-lg: 32rem;
     --container-2xl: 42rem;
-    --container-3xl: 48rem;
     --container-4xl: 56rem;
-    --container-5xl: 64rem;
     --text-3xl: 1.875rem;
     --text-3xl--line-height: calc(2.25 / 1.875);
     --text-4xl: 2.25rem;
@@ -189,9 +186,6 @@
   .static {
     position: static;
   }
-  .col-auto {
-    grid-column: auto;
-  }
   .container {
     width: 100%;
     @media (width >= 40rem) {
@@ -239,6 +233,9 @@
   }
   .grid {
     display: grid;
+  }
+  .hidden {
+    display: none;
   }
   .aspect-square {
     aspect-ratio: 1 / 1;
