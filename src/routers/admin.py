@@ -30,7 +30,7 @@ from src.services.image_processor import (
 )
 
 from src.models.schema import Photo
-from src.models.responses import DeletePhotoPayload
+from src.models.models import DeletePhotoPayload
 
 from src.database import get_db
 
