@@ -29,7 +29,7 @@ from src.services.image_processor import (
     delete_from_image_store,
 )
 
-from src.models.models import Photo
+from src.models.schema import Photo
 from src.models.responses import DeletePhotoPayload
 
 from src.database import get_db

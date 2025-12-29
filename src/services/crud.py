@@ -1,7 +1,7 @@
 from typing import Sequence
 from sqlalchemy import select, Select
 from sqlalchemy.orm import Session
-from src.models.models import Photo
+from src.models.schema import Photo
 
 
 def get_photo_by_hash(hash: str, db: Session) -> Photo | None:

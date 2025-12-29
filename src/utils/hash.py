@@ -1,7 +1,7 @@
 import hashlib
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
-from src.models.models import Photo
+from src.models.schema import Photo
 
 
 def get_hash(file_data: bytes) -> str:
