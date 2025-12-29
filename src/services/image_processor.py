@@ -6,7 +6,7 @@ from src.config import Config, EnvType
 
 
 def _get_output_path(file_name: str, subdir: str) -> str:
-    config: Config = Config.from_env()
+    config: Config = Config()
     path: Path = Path("uploads") / subdir / file_name
     if config.env_type == EnvType.DEVELOPMENT:
         path.parent.mkdir(parents=True, exist_ok=True)

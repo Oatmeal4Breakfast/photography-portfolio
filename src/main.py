@@ -22,7 +22,7 @@ from src.routers import admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config: Config = Config.from_env()
+    config: Config = Config()
     if config.env_type == EnvType.DEVELOPMENT:
         init_db()
     yield

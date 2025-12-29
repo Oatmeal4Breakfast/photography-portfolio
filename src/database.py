@@ -38,7 +38,7 @@ def _create_db_engine(db_uri: str) -> Engine:
     return create_engine(db_uri, connect_args={"check_same_thread": False})
 
 
-config: Config = Config.from_env()
+config: Config = Config()
 db_uri: str = _build_db_uri(config)
 engine: Engine = _create_db_engine(db_uri)
 SessionLocal: sessionmaker[Session] = sessionmaker(bind=engine)

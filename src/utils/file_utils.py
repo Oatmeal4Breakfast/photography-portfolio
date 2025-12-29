@@ -16,7 +16,7 @@ def build_photo_url(path: str | None) -> str | None:
     if path is None:
         return None
 
-    config: Config = Config.from_env()
+    config: Config = Config()
 
     if config.env_type == EnvType.DEVELOPMENT:
         return f"/{path}"
