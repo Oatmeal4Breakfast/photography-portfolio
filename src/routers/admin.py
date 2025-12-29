@@ -159,7 +159,7 @@ async def view_photos(
 
     return templates.TemplateResponse(
         request=request,
-        name="view.html",
+        name="admin.html",
         context={"request": request, "photos": image_data},
     )
 
