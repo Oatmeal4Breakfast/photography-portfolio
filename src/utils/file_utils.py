@@ -12,6 +12,7 @@ def sanitize_file(file_name: str) -> str:
 
 
 def build_photo_url(path: str | None) -> str | None:
+    """builds the url for the photo e.g. 'https://localhost:800/uploads/thumbnail/img.jpeg'"""
     if path is None:
         return None
 

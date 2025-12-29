@@ -4,6 +4,8 @@ const photoGrid = document.getElementById("photo-grid");
 const deleteBtn = document.getElementById("delete-btn");
 const countSpan = document.getElementById("count");
 
+countSpan.hidden = true;
+
 photoGrid.addEventListener("click", function (event) {
   const photoItem = event.target.closest(".photo-item");
 
