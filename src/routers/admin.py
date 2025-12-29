@@ -40,6 +40,11 @@ router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="src/templates")
 
 
+@router.get(path="/", response_class=HTMLResponse, name="login_form")
+async def login_form(request: Request):
+    return templates.TemplateResponse(request=request, name="login.html")
+
+
 @router.get(path="/upload", response_class=HTMLResponse, name="upload_form")
 async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
