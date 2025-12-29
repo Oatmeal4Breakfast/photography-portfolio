@@ -1,4 +1,5 @@
 import uuid
+import hashlib
 from pathlib import Path
 from src.config import Config, EnvType
 
@@ -20,3 +21,8 @@ def build_photo_url(path: str | None) -> str | None:
         return f"/{path}"
     else:
         return f"{config.image_store_url}/{path}"
+
+
+def get_hash(file_data: bytes) -> str:
+    """Returns the hashed string of the file"""
+    return hashlib.sha256(data=file_data).hexdigest()

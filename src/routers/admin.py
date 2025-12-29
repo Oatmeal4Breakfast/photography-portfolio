@@ -14,14 +14,14 @@ from fastapi import (
 )
 from fastapi.templating import Jinja2Templates
 
-from src.utils.hash import get_hash, photo_hash_exists
-from src.utils.file_utils import sanitize_file, build_photo_url
+from src.utils.file_utils import sanitize_file, build_photo_url, get_hash
 
 from src.services.crud import (
     add_photo,
     get_all_photos,
     get_photo_by_id,
     delete_photo_from_db,
+    photo_hash_exists,
 )
 from src.services.image_processor import (
     create_original,

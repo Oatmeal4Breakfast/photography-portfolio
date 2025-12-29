@@ -68,3 +68,13 @@ def delete_photo_from_db(photo: Photo, db: Session) -> None:
     """deletes a photo"""
     db.delete(instance=photo)
     db.commit()
+
+
+def photo_hash_exists(hash: str, db: Session) -> bool:
+    """
+    Returns True if photo found with matching hash
+    """
+    query: Select[tuple[str]] = select(Photo.file_name).where(Photo.hash == hash)
+    if db.execute(statement=query).scalars().one_or_none() is None:
+        return False
+    return True
