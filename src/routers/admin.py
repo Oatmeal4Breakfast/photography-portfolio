@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.utils.file_utils import sanitize_file, build_photo_url, get_hash
 
-from src.services.photo_service import PhotoService
+from src.services.photo_service import PhotoService, PhotoValidator
 
 from src.services.crud import (
     add_photo,
@@ -35,11 +35,19 @@ from src.models.schema import Photo
 from src.models.models import DeletePhotoPayload
 
 from src.database import get_db
+from src.config import Config
 
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
 templates = Jinja2Templates(directory="src/templates")
+
+
+def get_photo_service(
+    db: Session = Depends(get_db),
+    config: Config = Config(),
+) -> PhotoService:
+    return PhotoService(db=db, config=config)
 
 
 @router.get(path="/", response_class=HTMLResponse, name="login_form")
@@ -59,93 +67,28 @@ async def uploads_photo(
     description: Annotated[str, Form()],
     collection: Annotated[str, Form()],
     request: Request,
-    db: Annotated[Session, Depends(dependency=get_db)],
+    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
 ):
-    if not file.filename:
+    validator: PhotoValidator = PhotoValidator(file=file)
+
+    file_data: bytes | None = await validator.validate()
+
+    if file_data is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename or file not uploaded",
+            status_code=status.HTTP_400_BAD_REQUEST, detail="file empty or too large"
         )
 
     service: PhotoService = PhotoService(db=db)
+    file_name: str | None = file.filename
 
-    allowed_img_type: list[str] = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
-    if file.content_type not in allowed_img_type:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: {', '.join(allowed_img_type)}",
-        )
-
-    MAX_IMAGE_SIZE: int = 10 * 1024 * 1024
-    file_data: bytes = await file.read()
-
-    if len(file_data) > MAX_IMAGE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"file too large. Max size {MAX_IMAGE_SIZE / (1024 * 1024)} MB",
-        )
-
-    if len(file_data) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file"
-        )
-
-    if not title or not title.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Title cannot be empty"
-        )
-
-    if len(title) > 50:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="Title too long. Max: 50",
-        )
-
-    file_hash: str = get_hash(file_data=file_data)
-
-    if service.photo_hash_exists(hash=file_hash):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"file with hash: {file_hash} already exists",
-        )
-    file_name: str = sanitize_file(file_name=file.filename)
-
-    try:
-        thumbnail_path: str = service.create_thumbnail(
-            file=file_data, file_name=file_name
-        )
-        original_img_path: str = service.create_original(
-            file=file_data, file_name=file_name
-        )
-
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"invalid image {e}"
-        )
-
-    except IOError as e:
+    photo = service.upload_photo(
+        title=title, file_name=file_name, file_data=file_data, collection=collection
+    )
+    if photo is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error saving image: {e}",
+            detail="Server could not upload image",
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal Server error: {e}",
-        )
-
-    try:
-        new_photo: Photo = Photo(
-            title=title,
-            hash=file_hash,
-            file_name=file_name,
-            original_path=original_img_path,
-            thumbnail_path=thumbnail_path,
-            collection=collection,
-        )
-        service.add_photo(photo=new_photo)
-    except Exception:
-        db.rollback()
 
     redirect_url = request.url_for("upload_form")
     return RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
