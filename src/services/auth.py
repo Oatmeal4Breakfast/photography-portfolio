@@ -1,5 +1,7 @@
 import jwt
 from pwdlib import PasswordHash
+from src.services.crud import get_user_by_username
+
 
 password_hash: PasswordHash = PasswordHash.recommended()
 

@@ -1,31 +1,42 @@
+from sqlalchemy.exc import IntegrityError
 from typing import Sequence
-from io import BytesIO
 from pathlib import Path
+from io import BytesIO
 from PIL import Image
 from sqlalchemy import select, Select
 from sqlalchemy.orm import Session
+
+
 from src.models.schema import Photo
-
-
 from src.config import Config, EnvType
 
 
 class PhotoService:
     def __init__(self, db: Session) -> None:
         self.db: Session = db
+        self.config: Config = Config()
 
-    def _get_output_path(file_name: str, subdir: str) -> str:
+    def _get_output_path(self, file_name: str, subdir: str) -> str:
         """Returns a string of the output path for the image to store in DB"""
-        config: Config = Config()
         path: Path = Path("uploads") / subdir / file_name
-        if config.env_type == EnvType.DEVELOPMENT:
+        if self.config.env_type == EnvType.DEVELOPMENT:
             path.parent.mkdir(parents=True, exist_ok=True)
         return str(path)
 
-    def create_thumbnail(file: bytes, file_name: str) -> str:
+    def photo_hash_exists(self, hash: str) -> bool:
+        """checks the db for an existing photo of the same hash"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.hash == hash)
+        result: Photo | None = self.db.execute(statement=query).scalars().one_or_none()
+        if result is None:
+            return False
+        return True
+
+    def create_thumbnail(self, file: bytes, file_name: str) -> str:
         """Compresses image to thumbnail size (300,300)"""
         size = (300, 300)
-        path_to_save = Path(_get_output_path(file_name=file_name, subdir="thumbnail"))
+        path_to_save = Path(
+            self._get_output_path(file_name=file_name, subdir="thumbnail")
+        )
 
         try:
             with Image.open(fp=BytesIO(initial_bytes=file)) as img:
@@ -38,7 +49,7 @@ class PhotoService:
     def create_original(self, file: bytes, file_name: str) -> str:
         """Returns path to save file of the original size"""
         path_to_save: Path = Path(
-            _get_output_path(file_name=file_name, subdir="original")
+            self._get_output_path(file_name=file_name, subdir="original")
         )
         try:
             with Image.open(fp=BytesIO(initial_bytes=file)) as img:
@@ -99,6 +110,15 @@ class PhotoService:
             self.db.add(instance=photo)
             self.db.commit()
             return True
-        except IOError:
+        except IntegrityError:
+            self.db.rollback()
+            raise
+
+    def delete_photo_from_db(self, photo: Photo) -> None:
+        """deletes a photo"""
+        try:
+            self.db.delete(instance=photo)
+            self.db.commit()
+        except IntegrityError:
             self.db.rollback()
             raise

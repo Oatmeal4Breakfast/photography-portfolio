@@ -42,7 +42,9 @@ def create_original(file: bytes, file_name: str) -> str:
     if not file:
         raise ValueError("No file provided")
 
-    path_to_save: Path = Path(_get_output_path(file_name=file_name, subdir="original"))
+    path_to_save: Path = Path(
+        _get_output_path(filfie_name=file_name, subdir="original")
+    )
 
     try:
         with Image.open(fp=BytesIO(initial_bytes=file)) as img:

@@ -16,6 +16,8 @@ from fastapi.templating import Jinja2Templates
 
 from src.utils.file_utils import sanitize_file, build_photo_url, get_hash
 
+from src.services.photo_service import PhotoService
+
 from src.services.crud import (
     add_photo,
     get_all_photos,
@@ -65,6 +67,8 @@ async def uploads_photo(
             detail="No filename or file not uploaded",
         )
 
+    service: PhotoService = PhotoService(db=db)
+
     allowed_img_type: list[str] = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
     if file.content_type not in allowed_img_type:
         raise HTTPException(
@@ -98,7 +102,8 @@ async def uploads_photo(
         )
 
     file_hash: str = get_hash(file_data=file_data)
-    if photo_hash_exists(hash=file_hash, db=db):
+
+    if service.photo_hash_exists(hash=file_hash):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"file with hash: {file_hash} already exists",
@@ -106,8 +111,12 @@ async def uploads_photo(
     file_name: str = sanitize_file(file_name=file.filename)
 
     try:
-        thumbnail_path: str = create_thumbnail(file=file_data, file_name=file_name)
-        original_img_path: str = create_original(file=file_data, file_name=file_name)
+        thumbnail_path: str = service.create_thumbnail(
+            file=file_data, file_name=file_name
+        )
+        original_img_path: str = service.create_original(
+            file=file_data, file_name=file_name
+        )
 
     except ValueError as e:
         raise HTTPException(
@@ -134,7 +143,7 @@ async def uploads_photo(
             thumbnail_path=thumbnail_path,
             collection=collection,
         )
-        add_photo(photo=new_photo, db=db)
+        service.add_photo(photo=new_photo)
     except Exception:
         db.rollback()
 
