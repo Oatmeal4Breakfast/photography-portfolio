@@ -1,0 +1,104 @@
+from typing import Sequence
+from io import BytesIO
+from pathlib import Path
+from PIL import Image
+from sqlalchemy import select, Select
+from sqlalchemy.orm import Session
+from src.models.schema import Photo
+
+
+from src.config import Config, EnvType
+
+
+class PhotoService:
+    def __init__(self, db: Session) -> None:
+        self.db: Session = db
+
+    def _get_output_path(file_name: str, subdir: str) -> str:
+        """Returns a string of the output path for the image to store in DB"""
+        config: Config = Config()
+        path: Path = Path("uploads") / subdir / file_name
+        if config.env_type == EnvType.DEVELOPMENT:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        return str(path)
+
+    def create_thumbnail(file: bytes, file_name: str) -> str:
+        """Compresses image to thumbnail size (300,300)"""
+        size = (300, 300)
+        path_to_save = Path(_get_output_path(file_name=file_name, subdir="thumbnail"))
+
+        try:
+            with Image.open(fp=BytesIO(initial_bytes=file)) as img:
+                img.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
+                img.save(path_to_save, format="JPEG")
+                return str(path_to_save)
+        except IOError:
+            raise
+
+    def create_original(self, file: bytes, file_name: str) -> str:
+        """Returns path to save file of the original size"""
+        path_to_save: Path = Path(
+            _get_output_path(file_name=file_name, subdir="original")
+        )
+        try:
+            with Image.open(fp=BytesIO(initial_bytes=file)) as img:
+                img.save(path_to_save, format="JPEG")
+                return str(path_to_save)
+        except IOError:
+            raise
+
+    def delete_from_image_store(photo_paths: list[str | Path]) -> None:
+        """deletes the path to the image form the file store"""
+        for path in photo_paths:
+            item: Path = Path(path)
+            if item.is_file():
+                item.unlink(missing_ok=True)
+
+    def get_photo_by_hash(self, hash: str) -> Photo | None:
+        """Queries the db for the photo by hash"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.hash == hash)
+        return self.db.execute(statement=query).scalars().one_or_none()
+
+    def get_photo_by_file_name(self, file_name: str) -> Photo | None:
+        """Queries the db for photo by file_name"""
+        original_file_name: str = file_name.split(sep="_")[0]
+        query: Select[tuple[Photo]] = select(Photo).where(
+            Photo.file_name.contains(other=original_file_name)
+        )
+        return self.db.execute(statement=query).scalars().one_or_none()
+
+    def get_photo_by_id(self, id: int) -> Photo | None:
+        """Queries the db for the photo by id"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
+        return self.db.execute(statement=query).scalar_one_or_none()
+
+    def get_photos_by_collection(self, collection_name: str) -> Sequence[Photo]:
+        """Queries the DB by collection name"""
+        query: Select[tuple[Photo]] = select(Photo).where(
+            Photo.collection.like(other=collection_name)
+        )
+        return self.db.execute(statement=query).scalars().all()
+
+    def get_all_photos(self) -> Sequence[Photo]:
+        """Queries the db for all photos in the db"""
+        query: Select[tuple[Photo]] = select(Photo)
+        return self.db.execute(statement=query).scalars().all()
+
+    def get_hero_photo(self) -> str | None:
+        """Queries the db for the hero image. Returns the path to the image"""
+        query: Select[tuple[str]] = select(Photo.original_path).where(
+            Photo.file_name.contains(other="hero")
+        )
+        return self.db.execute(statement=query).scalar_one_or_none()
+
+    def add_photo(self, photo: Photo) -> bool | None:
+        if self.get_photo_by_hash(hash=photo.hash):
+            return None
+
+        try:
+            self.db.add(instance=photo)
+            self.db.commit()
+            return True
+        except IOError:
+            self.db.rollback()
+            raise

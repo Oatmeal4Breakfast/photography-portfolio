@@ -1,10 +1,6 @@
-from dotenv import load_dotenv
 from enum import Enum
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
-
-
-load_dotenv()
 
 
 class EnvType(Enum):
