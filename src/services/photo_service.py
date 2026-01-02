@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 from sqlalchemy import select, Select
 from sqlalchemy.orm import Session
-from fastapi import UploadFile
+from typing import Protocol
 
 import hashlib
 import uuid
@@ -14,9 +14,30 @@ from src.models.schema import Photo
 from src.config import Config, EnvType
 
 
+class ImageTooLarge(Exception):
+    pass
+
+
+class ImageDoesNotExist(Exception):
+    pass
+
+
+class ImageReadError(Exception):
+    pass
+
+
+class ImageUpload(Protocol):
+    filename: str
+    content_type: str | None
+    data: bytes
+
+    async def read(self, size: int = -1) -> bytes: ...
+    async def seek(self, offset: int) -> None: ...
+
+
 class PhotoValidator:
-    def __init__(self, file: UploadFile, config: Config) -> None:
-        self.file: UploadFile = file
+    def __init__(self, file: ImageUpload, config: Config) -> None:
+        self.file: ImageUpload = file
         self.valid_types: list[str] = [
             "image/jpeg",
             "image/jpg",
@@ -36,23 +57,23 @@ class PhotoValidator:
             return False
         return True
 
-    async def check_file_size(self) -> bytes | None:
+    async def check_file_size(self) -> bytes:
         """checks the file for size"""
         chunks: list[bytes] = []
         total: int = 0
         while True:
             chunk: bytes = await self.file.read(size=(1024 * 1024))
             if not chunk:
-                break
+                raise ImageReadError("Could not read image file")
 
             total += len(chunk)
             if total > self.max_size:
-                return None
+                raise ImageTooLarge("Image too large")
 
             chunks.append(chunk)
 
         if total == 0:
-            return None
+            raise ImageDoesNotExist("Image has no data")
 
         return b"".join(chunks)
 

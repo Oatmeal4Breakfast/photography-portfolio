@@ -11,7 +11,13 @@ photoGrid.addEventListener("click", function (event) {
 
   if (!photoItem) return;
 
-  const photoId = photoItem.dataset.photoId;
+  const rawId = photoItem.dataset.photoId;
+  const photoId = Number(rawId);
+
+  if (!Number.isInteger(photoId)) {
+    console.warn(`skipping invalid photoId:  ${rawId}`);
+    return;
+  }
 
   if (selectedPhotoIds.includes(photoId)) {
     selectedPhotoIds = selectedPhotoIds.filter((id) => id !== photoId);
@@ -54,11 +60,11 @@ deleteBtn.addEventListener("click", async function () {
     } else {
       alert("Error deleting photos");
       deleteBtn.disabled = false;
-      deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
+      // deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
     }
   } catch (error) {
     alert("Network Error: " + error.message);
     deleteBtn.disabled = false;
-    deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
+    // deleteBtn.textContent = `Delete selected (${selectedPhotoIds.length})`;
   }
 });

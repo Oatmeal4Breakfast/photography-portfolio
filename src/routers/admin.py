@@ -1,7 +1,7 @@
 from typing import Annotated, Sequence
 from sqlalchemy.orm import Session
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import (
     HTTPException,
@@ -14,22 +14,10 @@ from fastapi import (
 )
 from fastapi.templating import Jinja2Templates
 
-from src.utils.file_utils import sanitize_file, build_photo_url, get_hash
+from src.utils.file_utils import build_photo_url
 
 from src.services.photo_service import PhotoService, PhotoValidator
 
-from src.services.crud import (
-    add_photo,
-    get_all_photos,
-    get_photo_by_id,
-    delete_photo_from_db,
-    photo_hash_exists,
-)
-from src.services.image_processor import (
-    create_original,
-    create_thumbnail,
-    delete_from_image_store,
-)
 
 from src.models.schema import Photo
 from src.models.models import DeletePhotoPayload
@@ -43,9 +31,14 @@ router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="src/templates")
 
 
+def get_config() -> Config:
+    config: Config = Config()
+    return config
+
+
 def get_photo_service(
     db: Session = Depends(get_db),
-    config: Config = Config(),
+    config: Config = Depends(get_config),
 ) -> PhotoService:
     return PhotoService(db=db, config=config)
 
@@ -68,8 +61,9 @@ async def uploads_photo(
     collection: Annotated[str, Form()],
     request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    config: Annotated[Config, Depends(dependency=get_config)],
 ):
-    validator: PhotoValidator = PhotoValidator(file=file)
+    validator: PhotoValidator = PhotoValidator(file=file, config=config)
 
     file_data: bytes | None = await validator.validate()
 
@@ -78,7 +72,6 @@ async def uploads_photo(
             status_code=status.HTTP_400_BAD_REQUEST, detail="file empty or too large"
         )
 
-    service: PhotoService = PhotoService(db=db)
     file_name: str | None = file.filename
 
     photo = service.upload_photo(
@@ -96,9 +89,10 @@ async def uploads_photo(
 
 @router.get(path="/photos")
 async def view_photos(
-    request: Request, db: Annotated[Session, Depends(dependency=get_db)]
+    request: Request,
+    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
 ):
-    photos: Sequence[Photo] = get_all_photos(db=db)
+    photos: Sequence[Photo] = service.get_all_photos()
     if len(photos) == 0:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -123,7 +117,8 @@ async def view_photos(
 
 @router.post(path="/photos/delete")
 async def delete_photos(
-    payload: DeletePhotoPayload, db: Annotated[Session, Depends(dependency=get_db)]
+    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    payload: DeletePhotoPayload,
 ):
     photo_ids: list[int] = payload.photo_ids
     if not photo_ids:
@@ -133,15 +128,15 @@ async def delete_photos(
         )
 
     for photo_id in photo_ids:
-        photo: Photo | None = get_photo_by_id(id=photo_id, db=db)
+        photo: Photo | None = service.get_photo_by_id(id=photo_id)
         if photo is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Photo not found in db",
             )
         try:
-            delete_photo_from_db(photo=photo, db=db)
-            delete_from_image_store(
+            service.delete_photo_from_db(photo=photo)
+            service.delete_from_image_store(
                 photo_paths=[photo.thumbnail_path, photo.original_path]
             )
         except Exception as e:
