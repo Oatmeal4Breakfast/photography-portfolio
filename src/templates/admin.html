@@ -5,7 +5,7 @@ Admin - view {% endblock %} {% block content %}
 
 <section class="container mx-auto p-2 mb-4">
   <div class="flex justify-end space-x-4 ">
-    <button type="Submit" id="upload-btn" class="btn btn-primary bg-orange-500 text-white font-bold hover:bg-orange-600 rounded-md shadow p-2 px-5"> Upload</button> 
+    <a href="{{ url_for('upload_form')}}" class="btn btn-primary bg-orange-500 text-white font-bold hover:bg-orange-600 rounded-md shadow p-2 px-5"> Upload</a>
     <button type="button" id="delete-btn" class="btn btn-primary bg-orange-500 text-white font-bold hover:bg-orange-600 rounded-md shadow p-2 px-5"> Delete</button> 
     <span id="count" class="p-2 mx-8 text-stone-600">0</span>
   </div> 

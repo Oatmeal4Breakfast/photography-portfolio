@@ -1,5 +1,3 @@
-import uuid
-import hashlib
 from pathlib import Path
 from src.config import Config, EnvType
 
