@@ -1,6 +1,7 @@
-from sqlalchemy import select
+from datetime import datetime, timedelta, timezone
 import jwt
 from sqlalchemy.orm import Session
+from sqlalchemy import select, Select
 from pwdlib import PasswordHash
 
 
@@ -9,6 +10,10 @@ from models.schema import User
 
 
 password_hash: PasswordHash = PasswordHash.recommended()
+
+
+class CredentialsException(Exception):
+    pass
 
 
 class AuthService:
@@ -27,7 +32,7 @@ class AuthService:
 
     def get_user_by_email(self, email: str) -> User | None:
         """queries the db for a user by email"""
-        query: Select[tuple[User]] = select(User).where(User.email == username)
+        query: Select[tuple[User]] = select(User).where(User.email == email)
         return self.db.execute(statement=query).scalars().one_or_none()
 
     def authenticate_user(self, email: str, password: str) -> User | bool:
@@ -40,3 +45,16 @@ class AuthService:
         ):
             return False
         return user
+
+    def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
+        """create access token for authentication"""
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(
+            payload=to_encode, key=self.config.key, algorithm=self.config.algorithm
+        )
+        return encoded_jwt
