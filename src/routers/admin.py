@@ -1,7 +1,7 @@
 from typing import Annotated, Sequence
 from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import (
     HTTPException,
@@ -22,7 +22,7 @@ from src.services.photo_service import PhotoService, PhotoValidator
 from src.models.schema import Photo
 from src.models.models import DeletePhotoPayload
 
-from src.database import get_db
+from src.dependencies.database import get_db
 from src.dependencies.config import get_config
 
 

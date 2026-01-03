@@ -10,8 +10,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
-from src.database import init_db, get_db
-from src.dependencies.config import Config, EnvType
+from src.dependencies.database import init_db, get_db
+from src.dependencies.config import Config, EnvType, get_config
+
 from src.services.photo_service import PhotoService
 
 from src.utils.file_utils import build_photo_url
@@ -39,11 +40,6 @@ app.mount(
 )
 
 templates = Jinja2Templates(directory="src/templates")
-
-
-def get_config() -> Config:
-    config: Config = Config()
-    return config
 
 
 def get_photo_service(
