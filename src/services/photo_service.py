@@ -11,7 +11,7 @@ import hashlib
 import uuid
 
 from src.models.schema import Photo
-from src.config import Config, EnvType
+from src.dependencies.config import Config, EnvType
 
 
 class ImageTooLarge(Exception):

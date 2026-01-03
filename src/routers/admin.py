@@ -23,17 +23,12 @@ from src.models.schema import Photo
 from src.models.models import DeletePhotoPayload
 
 from src.database import get_db
-from src.config import Config
+from src.dependencies.config import get_config
 
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
 templates = Jinja2Templates(directory="src/templates")
-
-
-def get_config() -> Config:
-    config: Config = Config()
-    return config
 
 
 def get_photo_service(

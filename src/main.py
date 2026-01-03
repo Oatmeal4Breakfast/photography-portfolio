@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
 from src.database import init_db, get_db
-from src.config import Config, EnvType
+from src.dependencies.config import Config, EnvType
 from src.services.photo_service import PhotoService
 
 from src.utils.file_utils import build_photo_url

@@ -2,7 +2,7 @@ from typing import Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.models.schema import Base
-from src.config import Config, EnvType
+from src.dependencies.config import Config, EnvType
 from pathlib import Path
 
 
