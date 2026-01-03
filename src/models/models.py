@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List
+from src.models.schema import UserType
 
 
 class DeletePhotoPayload(BaseModel):
@@ -16,9 +17,10 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
-    username: str
+    firstname: str | None = None
+    lastname: str | None = None
     email: str | None = None
-    full_name: str | None = None
+    user_type: UserType = UserType.USER
     disabled: bool | None = None
 
 

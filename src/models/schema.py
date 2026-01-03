@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import String, Text, ForeignKey, Enum
+from sqlalchemy import String, Text, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -43,11 +43,13 @@ class Photo(Base):
 class User(Base):
     __tablename__ = "user_account"
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
-    name: Mapped[str] = mapped_column(String(length=30))
+    firstname: Mapped[str] = mapped_column(String(length=15))
+    lastname: Mapped[str] = mapped_column(String(length=20))
     email: Mapped[str] = mapped_column(String(length=50), unique=True, nullable=False)
     comments: Mapped[List["Comment"]] = relationship(back_populates="user", init=False)
     hashed_password: Mapped[str] = mapped_column(String(), nullable=False)
     user_type: Mapped[UserType] = mapped_column(Enum(enums=UserType), nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Comment(Base):
