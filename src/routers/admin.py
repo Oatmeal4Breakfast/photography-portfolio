@@ -14,16 +14,13 @@ from fastapi import (
 )
 from fastapi.templating import Jinja2Templates
 
-from src.utils.file_utils import build_photo_url
-
 from src.services.photo_service import PhotoService, PhotoValidator
-
 
 from src.models.schema import Photo
 from src.models.models import DeletePhotoPayload
 
 from src.dependencies.database import get_db
-from src.dependencies.config import get_config
+from src.dependencies.config import get_config, Config
 
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
@@ -96,7 +93,7 @@ async def view_photos(
 
     image_data: list[dict[str, str | int]] = []
     for photo in photos:
-        path: str | None = build_photo_url(path=photo.thumbnail_path)
+        path: str | None = service.build_photo_url(path=photo.thumbnail_path)
         photo
         if path is None:
             image_data.append({"id": photo.id, "path": ""})

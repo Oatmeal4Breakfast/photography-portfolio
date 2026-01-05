@@ -64,7 +64,7 @@ class PhotoValidator:
         while True:
             chunk: bytes = await self.file.read(size=(1024 * 1024))
             if not chunk:
-                raise ImageReadError("Could not read image file")
+                break
 
             total += len(chunk)
             if total > self.max_size:
@@ -106,6 +106,11 @@ class PhotoService:
         stem: str = Path(file_name).stem
         sanitized_stem: str = stem.replace(" ", "_")[:50]
         return f"{sanitized_stem}_{uuid.uuid4().hex[:8]}.jpeg"
+
+    def build_photo_url(self, path: str) -> str:
+        if self.config.env_type == EnvType.DEVELOPMENT:
+            return f"/{path}"
+        return f"{self.config.image_store}/{path}"
 
     def create_thumbnail(self, file: bytes, file_name: str) -> str:
         """Compresses image to thumbnail size (300,300)"""

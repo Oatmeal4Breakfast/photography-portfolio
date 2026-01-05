@@ -16,7 +16,7 @@ class Config(BaseSettings):
     env_type: EnvType = Field(validation_alias="ENV_TYPE")
     image_store: str = Field(validation_alias="IMAGE_STORE_BASE_URL")
     secret_key: str = Field(validation_alias="SECRET_KEY")
-    alogrithm: str = Field(validation_alias="ALGORITHM")
+    algorithm: str = Field(validation_alias="ALGORITHM")
     auth_token_expire_minute: int = Field(validation_alias="AUTH_TOKEN_EXPIRE_MINUTES")
     max_image_size: int = Field(validation_alias="MAX_IMAGE_SIZE")
 

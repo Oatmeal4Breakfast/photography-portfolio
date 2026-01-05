@@ -25,4 +25,4 @@ class User(BaseModel):
 
 
 class UserInDB(User):
-    hasshed_password: str
+    hashed_password: str

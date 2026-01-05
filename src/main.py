@@ -15,8 +15,6 @@ from src.dependencies.config import Config, EnvType, get_config
 
 from src.services.photo_service import PhotoService
 
-from src.utils.file_utils import build_photo_url
-
 from src.routers import admin
 
 
@@ -54,9 +52,11 @@ async def home(
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
 ):
     thumbnail_path: str | None = service.get_hero_photo()
+    print(thumbnail_path)
     if thumbnail_path is None:
-        thumbnail_path: str = "/static/images/fallback_hero.jpeg"
-    photo_path: str = build_photo_url(path=thumbnail_path)
+        thumbnail_path: str = "static/images/fallback_hero.jpeg"
+    photo_path: str = service.build_photo_url(path=thumbnail_path)
+    print(photo_path)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
