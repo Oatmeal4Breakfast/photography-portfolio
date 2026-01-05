@@ -1,3 +1,6 @@
+from pydantic_core.core_schema import timedelta_schema
+from datetime import timedelta
+from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
 from sqlalchemy.orm import Session
 
@@ -10,13 +13,15 @@ from fastapi import (
     Form,
     UploadFile,
     File,
+    Response,
     status,
 )
 from fastapi.templating import Jinja2Templates
 
 from src.services.photo_service import PhotoService, PhotoValidator
+from src.services.user_service import AuthService
 
-from src.models.schema import Photo
+from src.models.schema import Photo, User
 from src.models.models import DeletePhotoPayload
 
 from src.dependencies.database import get_db
@@ -35,9 +40,42 @@ def get_photo_service(
     return PhotoService(db=db, config=config)
 
 
+def get_auth_service(
+    db: Session = Depends(get_db), config: Config = Depends(get_config)
+) -> AuthService:
+    return AuthService(db=db, config=config)
+
+
 @router.get(path="/", response_class=HTMLResponse, name="login_form")
 async def login_form(request: Request):
     return templates.TemplateResponse(request=request, name="login.html")
+
+
+@router.post(path="/login")
+async def login(
+    response: Response,
+    form: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    """Authenticate the user with the data from the form and set the session cookie"""
+    user: User | bool = service.authenticate_user(
+        email=form.username, password=form.password
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not authenticate user",
+        )
+    expires_delta: timedelta = timedelta(
+        minutes=service.config.auth_token_expire_minute
+    )
+    access_token: str = service.create_access_token(
+        data={"sub": user.email}, expires_delta=expires_delta
+    )
+    response.set_cookie(
+        key="access_token", value=f"Bearer: {access_token}", httponly=True
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get(path="/upload", response_class=HTMLResponse, name="upload_form")

@@ -56,7 +56,6 @@ async def home(
     if thumbnail_path is None:
         thumbnail_path: str = "static/images/fallback_hero.jpeg"
     photo_path: str = service.build_photo_url(path=thumbnail_path)
-    print(photo_path)
     return templates.TemplateResponse(
         request=request,
         name="index.html",

@@ -5,8 +5,8 @@ from sqlalchemy import select, Select
 from pwdlib import PasswordHash
 
 
-from src.config import Config
-from models.schema import User
+from src.dependencies.config import Config
+from src.models.schema import User
 
 
 password_hash: PasswordHash = PasswordHash.recommended()
@@ -46,7 +46,9 @@ class AuthService:
             return False
         return user
 
-    def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
+    def create_access_token(
+        self, data: dict, expires_delta: timedelta | None = None
+    ) -> str:
         """create access token for authentication"""
         to_encode = data.copy()
         if expires_delta:
@@ -54,7 +56,7 @@ class AuthService:
         else:
             expire = datetime.now(timezone.utc) + timedelta(minutes=15)
         to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(
+        encoded_jwt: str = jwt.encode(
             payload=to_encode, key=self.config.key, algorithm=self.config.algorithm
         )
         return encoded_jwt
