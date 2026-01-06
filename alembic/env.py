@@ -6,9 +6,9 @@ from sqlalchemy import pool
 from alembic import context
 
 import sys
-from src.database import PROJECT_ROOT
+from src.dependencies.database import PROJECT_ROOT
 from src.models.schema import Base
-from src.dependencies.config import get_config
+from src.dependencies.config import get_config, Config
 
 
 sys.path.append(str(PROJECT_ROOT))

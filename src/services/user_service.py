@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta, timezone
 import jwt
 from sqlalchemy.orm import Session
 from sqlalchemy import select, Select
+from sqlalchemy.exc import IntegrityError
 from pwdlib import PasswordHash
-
+from datetime import datetime, timedelta, timezone
 
 from src.dependencies.config import Config
-from src.models.schema import User
+from src.models.schema import User, UserType
 
 
 password_hash: PasswordHash = PasswordHash.recommended()
@@ -21,6 +21,36 @@ class AuthService:
         self.db = db
         self.config = config
         self.password_hash: PasswordHash = password_hash
+
+    def admin_exists(self) -> bool:
+        """checks db for existing admin user"""
+        query: Select[tuple[User]] = select(User).where(
+            User.user_type == UserType.ADMIN
+        )
+        results: User | None = self.db.execute(statement=query).scalars().one_or_none()
+        if results is None:
+            return False
+        return True
+
+    def create_user(
+        self, firstname: str, lastname: str, email: str, password: str
+    ) -> bool:
+        hashed_password = self.get_password_hash(password)
+        user = User(
+            firstname=firstname,
+            lastname=lastname,
+            email=email,
+            hashed_password=hashed_password,
+            user_type=UserType.ADMIN,
+            is_enabled=True,
+        )
+        try:
+            self.db.add(instance=user)
+            self.db.commit()
+            return True
+        except IntegrityError:
+            self.db.rollback()
+            raise
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """check to see if password entered matches the hash"""

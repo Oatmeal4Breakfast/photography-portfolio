@@ -1,4 +1,3 @@
-from pydantic_core.core_schema import timedelta_schema
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
@@ -22,7 +21,7 @@ from src.services.photo_service import PhotoService, PhotoValidator
 from src.services.user_service import AuthService
 
 from src.models.schema import Photo, User
-from src.models.models import DeletePhotoPayload
+from src.models.models import DeletePhotoPayload, UserRegistration
 
 from src.dependencies.database import get_db
 from src.dependencies.config import get_config, Config
@@ -46,8 +45,26 @@ def get_auth_service(
     return AuthService(db=db, config=config)
 
 
+async def user_registration_form(
+    firstname: Annotated[str, Form()],
+    lastname: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+    password: Annotated[str, Form()],
+) -> UserRegistration:
+    """verify the form with a pydantic model"""
+    return UserRegistration(
+        firstname=firstname, lastname=lastname, email=email, password=password
+    )
+
+
 @router.get(path="/", response_class=HTMLResponse, name="login_form")
-async def login_form(request: Request):
+async def login_form(
+    request: Request, service: Annotated[AuthService, Depends(get_auth_service)]
+):
+    if not service.admin_exists():
+        return RedirectResponse(
+            url=request.url_for("registration_form"), status_code=303
+        )
     return templates.TemplateResponse(request=request, name="login.html")
 
 
@@ -76,6 +93,41 @@ async def login(
         key="access_token", value=f"Bearer: {access_token}", httponly=True
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get(path="/register")
+async def registration_form(
+    request: Request, service: Annotated[AuthService, Depends(get_auth_service)]
+):
+    """user registration form"""
+    if service.admin_exists():
+        return RedirectResponse(url=request.url_for("login_form"), status_code=303)
+    return templates.TemplateResponse(request=request, name="register.html")
+
+
+@router.post(path="/register")
+async def register_user(
+    request: Request,
+    form_data: Annotated[UserRegistration, Depends(user_registration_form)],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    if service.admin_exists():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    if service.get_user_by_email(form_data.email) is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    user_created = service.create_user(
+        firstname=form_data.firstname,
+        lastname=form_data.lastname,
+        email=form_data.email,
+        password=form_data.password,
+    )
+    if not user_created:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not register user",
+        )
+    redirect_url = request.url_for("login_form")
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 
 @router.get(path="/upload", response_class=HTMLResponse, name="upload_form")

@@ -48,7 +48,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(length=50), unique=True, nullable=False)
     comments: Mapped[List["Comment"]] = relationship(back_populates="user", init=False)
     hashed_password: Mapped[str] = mapped_column(String(), nullable=False)
-    user_type: Mapped[UserType] = mapped_column(Enum(enums=UserType), nullable=False)
+    user_type: Mapped[UserType] = mapped_column(
+        Enum(UserType, values_callable=lambda x: [e.value for e in x]), nullable=False
+    )
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
 

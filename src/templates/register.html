@@ -1,0 +1,38 @@
+{% extends 'base.html' %} {% block title %} Register User {% endblock %}
+
+<!-- main content -->
+{% block content %}
+<main>
+  <section class="container mx-auto p-8 mt-12">
+   <div class="text-center mb-10 ">
+      <h1 class="text-4xl font-bold">Register User</h1>
+    </div> 
+  </section>
+  <section class="container mx-auto px-8">
+    <div class="max-w-2xl mx-auto  p-8">
+      <form action="/admin/register" method="POST" enctype="multipart/form-data">
+          <div class="flex flex-col gap-2">                                                                                                                                    
+            <label for="firstname" id="firstname">First Name</label>                                                                                                                        
+            <input type="text" name="firstname" required placeholder="e.g. Elvin" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8"> 
+          </div>                                                                                                                                                               
+          <div class="flex flex-col gap-2">                                                                                                                                    
+            <label for="lastname" id="lastname">Last Name</label>                                                                                                                        
+            <input type="text" name="lastname" required placeholder="e.g. Salcedo" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8"> 
+          </div>                                                                                                                                                               
+          <div class="flex flex-col gap-2">
+            <label for="email" id="email">email</label>
+            <input type="email" name="email" required placeholder="e.g. user@example.com" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="password" id="password">Password</label>
+            <input type="password" name="password"  minlength="12" required class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 mb-8">
+          </div>
+          <div class="flex flex-col">
+            <button type="Submit" class="btn btn-primary bg-orange-500 text-white font-bold py-2 mb-8 hover:bg-orange-600 rounded-md ">Register</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}
