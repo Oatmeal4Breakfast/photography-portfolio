@@ -87,6 +87,21 @@ class AuthService:
             expire = datetime.now(timezone.utc) + timedelta(minutes=15)
         to_encode.update({"exp": expire})
         encoded_jwt: str = jwt.encode(
-            payload=to_encode, key=self.config.key, algorithm=self.config.algorithm
+            payload=to_encode,
+            key=self.config.secret_key,
+            algorithm=self.config.algorithm,
         )
         return encoded_jwt
+
+    def verify_access_token(self, token: str) -> User | None:
+        """reads in the JWT token and attempts to return the user"""
+        try:
+            payload = jwt.decode(
+                jwt=token, key=self.config.secret_key, algorithm=self.config.algorithm
+            )
+            email: str | None = payload.get("sub")
+            if email is None:
+                return None
+            return self.get_user_by_email(email)
+        except jwt.PyJWTError:
+            return None

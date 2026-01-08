@@ -14,6 +14,7 @@ from fastapi import (
     File,
     Response,
     status,
+    Cookie,
 )
 from fastapi.templating import Jinja2Templates
 
@@ -57,6 +58,26 @@ async def user_registration_form(
     )
 
 
+async def get_current_user(
+    request: Request,
+    access_token: Annotated[str, Cookie()],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User:
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized access to the page",
+        )
+    token: str = access_token.replace("Bearer: ", "")
+    user: User | None = service.verify_access_token(token)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized access to the page",
+        )
+    return user
+
+
 @router.get(path="/", response_class=HTMLResponse, name="login_form")
 async def login_form(
     request: Request, service: Annotated[AuthService, Depends(get_auth_service)]
@@ -70,6 +91,7 @@ async def login_form(
 
 @router.post(path="/login")
 async def login(
+    request: Request,
     response: Response,
     form: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
     service: Annotated[AuthService, Depends(get_auth_service)],
@@ -92,7 +114,8 @@ async def login(
     response.set_cookie(
         key="access_token", value=f"Bearer: {access_token}", httponly=True
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    redirect_url = request.url_for("view_photos")
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 
 @router.get(path="/register")
