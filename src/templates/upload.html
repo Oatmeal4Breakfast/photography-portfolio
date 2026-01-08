@@ -3,10 +3,13 @@
 <!-- main content -->
 {% block content %}
 <main>
-  <section class="container mx-auto p-8">
-   <div class="text-center mb-12 ">
-      <h1 class="text-4xl font-bold">Upload Your Image</h1>
+  <section class="container mx-auto p-8 space-y-8">
+   <div class="text-center mb-10">
+      <h1 class="text-4xl font-bold ">Upload Your Image</h1>
     </div> 
+    <div class="text-center mt-10">
+      <a href="{{ url_for('view_photos') }}" class="text-orange-500 font-bold  p-2 px-5">view your photos</a>
+    </div>
   </section>
   <section class="container mx-auto px-8">
     <div class="max-w-2xl mx-auto  p-8">

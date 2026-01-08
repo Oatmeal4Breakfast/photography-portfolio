@@ -69,7 +69,6 @@ async def get_current_user(
             detail="Unauthorized access to the page",
         )
     token: str = access_token.replace("Bearer: ", "")
-    print(f"DEBUG: token - {token[:50]}")
     user: User | None = service.verify_access_token(token)
     if user is None:
         raise HTTPException(
@@ -171,7 +170,6 @@ async def upload_form(request: Request):
 async def uploads_photo(
     file: Annotated[UploadFile, File()],
     title: Annotated[str, Form()],
-    description: Annotated[str, Form()],
     collection: Annotated[str, Form()],
     request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
@@ -210,11 +208,6 @@ async def view_photos(
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
 ):
     photos: Sequence[Photo] = service.get_all_photos()
-    if len(photos) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error. Could not find photos.",
-        )
 
     image_data: list[dict[str, str | int]] = []
     for photo in photos:
