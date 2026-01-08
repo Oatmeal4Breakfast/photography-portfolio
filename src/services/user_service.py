@@ -35,6 +35,7 @@ class AuthService:
     def create_user(
         self, firstname: str, lastname: str, email: str, password: str
     ) -> bool:
+        """create user in db"""
         hashed_password = self.get_password_hash(password)
         user = User(
             firstname=firstname,
@@ -97,7 +98,9 @@ class AuthService:
         """reads in the JWT token and attempts to return the user"""
         try:
             payload = jwt.decode(
-                jwt=token, key=self.config.secret_key, algorithm=self.config.algorithm
+                jwt=token,
+                key=self.config.secret_key,
+                algorithms=[self.config.algorithm],
             )
             email: str | None = payload.get("sub")
             if email is None:

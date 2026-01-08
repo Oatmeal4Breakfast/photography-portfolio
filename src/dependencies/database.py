@@ -2,11 +2,11 @@ from typing import Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.models.schema import Base
-from src.dependencies.config import Config, EnvType
+from src.dependencies.config import Config, EnvType, get_config
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def _build_db_uri(config: Config) -> str:
@@ -38,7 +38,7 @@ def _create_db_engine(db_uri: str) -> Engine:
     return create_engine(db_uri, connect_args={"check_same_thread": False})
 
 
-config: Config = Config()
+config: Config = get_config()
 db_uri: str = _build_db_uri(config)
 engine: Engine = _create_db_engine(db_uri)
 SessionLocal: sessionmaker[Session] = sessionmaker(bind=engine)

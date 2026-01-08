@@ -60,8 +60,8 @@ async def user_registration_form(
 
 async def get_current_user(
     request: Request,
-    access_token: Annotated[str, Cookie()],
     service: Annotated[AuthService, Depends(get_auth_service)],
+    access_token: Annotated[str | None, Cookie()] = None,
 ) -> User:
     if not access_token:
         raise HTTPException(
@@ -69,11 +69,12 @@ async def get_current_user(
             detail="Unauthorized access to the page",
         )
     token: str = access_token.replace("Bearer: ", "")
+    print(f"DEBUG: token - {token[:50]}")
     user: User | None = service.verify_access_token(token)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized access to the page",
+            detail="Unauthorized access to the page. User not found",
         )
     return user
 
@@ -92,7 +93,6 @@ async def login_form(
 @router.post(path="/login")
 async def login(
     request: Request,
-    response: Response,
     form: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
@@ -111,11 +111,12 @@ async def login(
     access_token: str = service.create_access_token(
         data={"sub": user.email}, expires_delta=expires_delta
     )
-    response.set_cookie(
+    redirect_url = request.url_for("view_photos")
+    redirect = RedirectResponse(url=redirect_url, status_code=303)
+    redirect.set_cookie(
         key="access_token", value=f"Bearer: {access_token}", httponly=True
     )
-    redirect_url = request.url_for("view_photos")
-    return RedirectResponse(url=redirect_url, status_code=303)
+    return redirect
 
 
 @router.get(path="/register")
@@ -153,12 +154,20 @@ async def register_user(
     return RedirectResponse(url=redirect_url, status_code=303)
 
 
-@router.get(path="/upload", response_class=HTMLResponse, name="upload_form")
+@router.get(
+    path="/upload",
+    response_class=HTMLResponse,
+    name="upload_form",
+    dependencies=[Depends(get_current_user)],
+)
 async def upload_form(request: Request):
     return templates.TemplateResponse(request=request, name="upload.html")
 
 
-@router.post(path="/upload")
+@router.post(
+    path="/upload",
+    dependencies=[Depends(get_current_user)],
+)
 async def uploads_photo(
     file: Annotated[UploadFile, File()],
     title: Annotated[str, Form()],
@@ -192,7 +201,10 @@ async def uploads_photo(
     return RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
 
 
-@router.get(path="/photos")
+@router.get(
+    path="/photos",
+    dependencies=[Depends(get_current_user)],
+)
 async def view_photos(
     request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
@@ -220,7 +232,10 @@ async def view_photos(
     )
 
 
-@router.post(path="/photos/delete")
+@router.post(
+    path="/photos/delete",
+    dependencies=[Depends(get_current_user)],
+)
 async def delete_photos(
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
     payload: DeletePhotoPayload,
