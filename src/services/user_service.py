@@ -66,15 +66,15 @@ class AuthService:
         query: Select[tuple[User]] = select(User).where(User.email == email)
         return self.db.execute(statement=query).scalars().one_or_none()
 
-    def authenticate_user(self, email: str, password: str) -> User | bool:
+    def authenticate_user(self, email: str, password: str) -> User | None:
         """authenticates the user against the db"""
         user = self.get_user_by_email(email=email)
         if not user:
-            return False
+            return None
         if not self.verify_password(
             plain_password=password, hashed_password=user.hashed_password
         ):
-            return False
+            return None
         return user
 
     def create_access_token(

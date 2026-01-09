@@ -62,12 +62,10 @@ async def get_current_user(
     request: Request,
     service: Annotated[AuthService, Depends(get_auth_service)],
     access_token: Annotated[str | None, Cookie()] = None,
-) -> User:
+) -> User | RedirectResponse:
     if not access_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized access to the page",
-        )
+        redirect_url = request.url_for("login_form")
+        return RedirectResponse(url=redirect_url, status_code=303)
     token: str = access_token.replace("Bearer: ", "")
     user: User | None = service.verify_access_token(token)
     if user is None:
@@ -96,10 +94,10 @@ async def login(
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
     """Authenticate the user with the data from the form and set the session cookie"""
-    user: User | bool = service.authenticate_user(
+    user: User | None = service.authenticate_user(
         email=form.username, password=form.password
     )
-    if not user:
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not authenticate user",
