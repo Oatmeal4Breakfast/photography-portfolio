@@ -22,5 +22,4 @@ class Config(BaseSettings):
 
 
 def get_config() -> Config:
-    config: Config = Config()
-    return config
+    return Config()

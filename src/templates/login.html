@@ -11,6 +11,7 @@
   <section class="container mx-auto px-8">
     <div class="max-w-2xl mx-auto  p-8">
       <form action="/admin/login" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="token_key" value="{{ csrf_token }}">
         <div class="flex flex-col gap-2">
             <label for="username" id="username">Email</label>
             <input type="email" name="username" required placeholder="e.g. user@example.com" class="border border-stone-400 w-full rounded-md bg-stone-100 px-4 py-2 w-full mb-8">

@@ -1,3 +1,4 @@
+from stringprep import c6_set
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
@@ -17,6 +18,10 @@ from fastapi import (
     Cookie,
 )
 from fastapi.templating import Jinja2Templates
+from fastapi_csrf_protect import CsrfProtect
+
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 from src.services.photo_service import PhotoService, PhotoValidator
 from src.services.user_service import AuthService
@@ -31,6 +36,16 @@ from src.dependencies.config import get_config, Config
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
 templates = Jinja2Templates(directory="src/templates")
+
+
+class CSRFSettings(BaseSettings):
+    csrf_secret: str = Field(validation_alias="CSRF")
+    cookie_samesite: str = "none"
+
+
+@CsrfProtect.load_config
+def get_csrf_config() -> CSRFSettings:
+    return CSRFSettings()
 
 
 def get_photo_service(
@@ -77,14 +92,21 @@ async def get_current_user(
 
 
 @router.get(path="/", response_class=HTMLResponse, name="login_form")
-async def login_form(
-    request: Request, service: Annotated[AuthService, Depends(get_auth_service)]
+def login_form(
+    request: Request,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     if not service.admin_exists():
         return RedirectResponse(
             url=request.url_for("registration_form"), status_code=303
         )
-    return templates.TemplateResponse(request=request, name="login.html")
+    csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
+    response = templates.TemplateResponse(
+        name="login.html", context={"request": request, "csrf_token": csrf_token}
+    )
+    csrf_protect.set_csrf_cookie(signed_token, response)
+    return response
 
 
 @router.post(path="/login")
@@ -92,8 +114,11 @@ async def login(
     request: Request,
     form: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
     service: Annotated[AuthService, Depends(get_auth_service)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     """Authenticate the user with the data from the form and set the session cookie"""
+    await csrf_protect.validate_csrf(request)
+
     user: User | None = service.authenticate_user(
         email=form.username, password=form.password
     )
@@ -113,17 +138,25 @@ async def login(
     redirect.set_cookie(
         key="access_token", value=f"Bearer: {access_token}", httponly=True
     )
+    csrf_protect.unset_csrf_cookie(redirect)
     return redirect
 
 
 @router.get(path="/register")
 async def registration_form(
-    request: Request, service: Annotated[AuthService, Depends(get_auth_service)]
+    request: Request,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     """user registration form"""
     if service.admin_exists():
         return RedirectResponse(url=request.url_for("login_form"), status_code=303)
-    return templates.TemplateResponse(request=request, name="register.html")
+    csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
+    response = templates.TemplateResponse(
+        name="register.html", context={"request": request, "csrf_token": csrf_token}
+    )
+    csrf_protect.set_csrf_cookie(signed_token, response)
+    return response
 
 
 @router.post(path="/register")
@@ -131,7 +164,9 @@ async def register_user(
     request: Request,
     form_data: Annotated[UserRegistration, Depends(user_registration_form)],
     service: Annotated[AuthService, Depends(get_auth_service)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    csrf_protect.validate_csrf(request)
     if service.admin_exists():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     if service.get_user_by_email(form_data.email) is not None:
@@ -148,7 +183,9 @@ async def register_user(
             detail="Could not register user",
         )
     redirect_url = request.url_for("login_form")
-    return RedirectResponse(url=redirect_url, status_code=303)
+    response = RedirectResponse(url=redirect_url, status_code=303)
+    csrf_protect.unset_csrf_cookie(response=response)
+    return response
 
 
 @router.get(
@@ -157,8 +194,15 @@ async def register_user(
     name="upload_form",
     dependencies=[Depends(get_current_user)],
 )
-async def upload_form(request: Request):
-    return templates.TemplateResponse(request=request, name="upload.html")
+async def upload_form(
+    request: Request, csrf_protect: Annotated[CsrfProtect, Depends()]
+):
+    csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
+    response = templates.TemplateResponse(
+        name="upload.html", context={"request": request, "csrf_token": csrf_token}
+    )
+    csrf_protect.set_csrf_cookie(signed_token, response)
+    return response
 
 
 @router.post(
@@ -172,7 +216,9 @@ async def uploads_photo(
     request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
     config: Annotated[Config, Depends(dependency=get_config)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    csrf_protect.validate_csrf(request)
     validator: PhotoValidator = PhotoValidator(file=file, config=config)
 
     file_data: bytes | None = await validator.validate()
@@ -194,7 +240,9 @@ async def uploads_photo(
         )
 
     redirect_url = request.url_for("upload_form")
-    return RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
+    response = RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
+    csrf_protect.unset_csrf_cookie(response)
+    return response
 
 
 @router.get(
@@ -204,7 +252,10 @@ async def uploads_photo(
 async def view_photos(
     request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    """send all photos to view"""
+    csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
     photos: Sequence[Photo] = service.get_all_photos()
 
     image_data: list[dict[str, str | int]] = []
@@ -216,6 +267,11 @@ async def view_photos(
         else:
             image_data.append({"id": photo.id, "path": path})
 
+    response = templates.TemplateResponse(
+        name="admin.html",
+        context={"request": request, "photos": image_data, "csrf_token": csrf_token},
+    )
+    csrf_protect.set_csrf_cookie(signed_token, response)
     return templates.TemplateResponse(
         request=request,
         name="admin.html",
@@ -228,9 +284,15 @@ async def view_photos(
     dependencies=[Depends(get_current_user)],
 )
 async def delete_photos(
+    request: Request,
     service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
     payload: DeletePhotoPayload,
+    csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    """Delete selected photos from image store and metadata from db"""
+
+    csrf_protect.validate_csrf(request)
+
     photo_ids: list[int] = payload.photo_ids
     if not photo_ids:
         raise HTTPException(

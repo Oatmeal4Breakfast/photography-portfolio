@@ -51,6 +51,7 @@ deleteBtn.addEventListener("click", async function () {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken"),
       },
       body: JSON.stringify({ photo_ids: selectedPhotoIds }),
     });
