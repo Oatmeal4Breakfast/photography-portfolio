@@ -38,6 +38,12 @@ function updateDeleteButton() {
   countSpan.hidden = count === 0;
 }
 
+const getCookie(name) = => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+};
+
 deleteBtn.addEventListener("click", async function () {
   if (selectedPhotoIds.length === 0) return;
 
@@ -51,7 +57,7 @@ deleteBtn.addEventListener("click", async function () {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken"),
+        "X-CSRFToken": getCookie("csrf_token"),
       },
       body: JSON.stringify({ photo_ids: selectedPhotoIds }),
     });

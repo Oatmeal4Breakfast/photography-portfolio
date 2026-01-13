@@ -41,6 +41,7 @@ templates = Jinja2Templates(directory="src/templates")
 class CSRFSettings(BaseSettings):
     csrf_secret: str = Field(validation_alias="CSRF")
     cookie_samesite: str = "none"
+    cookie_name: str = "csrf_token"
 
 
 @CsrfProtect.load_config
