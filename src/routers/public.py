@@ -1,15 +1,14 @@
-from typing import Annotated, Sequence
+from typing import Annotated
 
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi import HTTPException, Request, Depends
+from fastapi.responses import HTMLResponse
+from fastapi import Request, Depends
 from fastapi.templating import Jinja2Templates
 
 from sqlalchemy.orm import Session
 
 from src.services.photo_service import PhotoService
 
-from src.models.schema import Photo
 
 from src.dependencies.database import get_db
 from src.dependencies.config import get_config, Config

@@ -1,4 +1,3 @@
-from stringprep import c6_set
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
@@ -13,7 +12,6 @@ from fastapi import (
     Form,
     UploadFile,
     File,
-    Response,
     status,
     Cookie,
 )
