@@ -21,8 +21,9 @@ from fastapi_csrf_protect import CsrfProtect
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
-from src.services.photo_service import PhotoService, PhotoValidator
+from src.services.photo_service import PhotoService
 from src.services.user_service import AuthService
+from src.services.admin_service import PhotoValidator, AdminService
 
 from src.models.schema import Photo, User
 from src.models.models import DeletePhotoPayload, UserRegistration
@@ -58,6 +59,12 @@ def get_auth_service(
     db: Session = Depends(get_db), config: Config = Depends(get_config)
 ) -> AuthService:
     return AuthService(db=db, config=config)
+
+
+def get_admin_service(
+    db: Session = Depends(get_db), config: Config = Depends(get_config)
+) -> AdminService:
+    return AdminService()
 
 
 async def user_registration_form(

@@ -1,3 +1,4 @@
+from dependencies.store import SignedURLParams
 from enum import StrEnum
 from typing import Sequence, Protocol
 from io import BytesIO
@@ -6,12 +7,12 @@ from PIL import Image
 from sqlalchemy import select, Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from aioboto3 import ClientError, BotoCoreError
 
 import uuid
 import hashlib
 
 from src.dependencies.config import Config, EnvType
+from src.dependencies.store import ImageStore
 from src.models.schema import Photo
 
 
@@ -93,10 +94,10 @@ class PhotoValidator:
 
 
 class AdminService:
-    def __init__(self, db: Session, config: Config, s3) -> None:
+    def __init__(self, db: Session, config: Config, store: ImageStore) -> None:
         self.db: Session = db
         self.config: Config = config
-        self.s3 = s3
+        self.store: ImageStore = store
 
     def sanitize_file(self, file_name: str) -> str:
         """sanitizes the file name with a UUID applied"""
@@ -136,7 +137,7 @@ class AdminService:
     def _delete_remote(self, photo_paths: list[str | Path]) -> None:
         """heler function to delete remote images"""
         for path in photo_paths:
-            self.s3.delete_object(Bucket=self.config.bucket, Key=path)
+            self.store.delete_object(Bucket=self.config.bucket, Key=path)
 
     def delete_from_image_store(self, photo_paths: list[str | Path]) -> None:
         """deletes the path in to the photo from image store"""
@@ -148,12 +149,12 @@ class AdminService:
     def _create_local_thumbnail(self, file: bytes, file_name: str) -> str:
         """save file as thumbnail to local storage"""
         size = (300, 300)
-        path_to_save = Path(self._get_output_path(file_name, subdir="thumbnail"))
-        file_data = self._process_image(file, size)
+        path_to_image: str = self._get_output_path(file_name, subdir="thumbnail")
+        file_data: bytes = self._process_image(file, size)
         try:
-            with open(path_to_save, "wb") as fp:
+            with open(path_to_image, "wb") as fp:
                 fp.write(file_data)
-            return path_to_save
+            return path_to_image
         except IOError:
             raise
 
@@ -161,23 +162,25 @@ class AdminService:
     async def _create_remote_thumbnail(self, file: bytes, file_name: str) -> str:
         """creates a thumbnail and stores it in the r2 bucket"""
         size = (300, 300)
-        path: Path = Path(
-            self._get_output_path(file_name=file_name, subdir="thumbnail")
-        )
         file_data: bytes = self._process_image(file, size)
-        try:
-            await self.s3.put_object(
-                Bucket=self.config.bucket, Key=path, Body=file_data
-            )
-            return path
-        except ClientError:
-            raise
-        except BotoCoreError:
-            raise
+        path_to_image: str = self._get_output_path(
+            file_name=file_name, subdir="thumbnail"
+        )
+
+        params: SignedURLParams = SignedURLParams(
+            Bucket="uploads", Key=path_to_image, ContentType=ValidTypes.jpeg.value
+        )
+        # ttl measured in seconds
+        results = await self.store.upload_image(
+            params=params, ttl=3600, file_data=file_data
+        )
+        if results != 200:
+            raise IOError(f"Unable to upload {path_to_image} to remote")
+        return path_to_image
 
     def _create_local_original(self, file: bytes, file_name: str) -> str:
         """returns path to original image"""
-        path_to_save = Path(self._get_output_path(file_name, subdir="original"))
+        path_to_save = self._get_output_path(file_name, subdir="original")
         file_data = self._process_image(file)
         try:
             with open(path_to_save, "wb") as fp:
@@ -187,17 +190,19 @@ class AdminService:
             raise
 
     async def _create_remote_original(self, file: bytes, file_name: str) -> str:
-        path: Path = Path(self._get_output_path(file_name=file_name, subdir="original"))
-        file_data: bytes = self._process_image(file)
-        try:
-            await self.s3.put_object(
-                Bucket=self.config.bucket, Key=path, Body=file_data
-            )
-            return path
-        except ClientError:
-            raise
-        except BotoCoreError:
-            raise
+        """Uploads image of original size to remote image store"""
+        path_to_image: str = self._get_output_path(
+            file_name=file_name, subdir="original"
+        )
+        params: SignedURLParams = SignedURLParams(
+            Bucket="uploads", Key=path_to_image, ContentType=ValidTypes.jpeg.value
+        )
+        results: int = await self.store.upload_image(
+            params=params, ttl=3600, file_data=file
+        )
+        if results != 200:
+            raise IOError(f"Unable to upload {path_to_image}")
+        return path_to_image
 
     async def create_thumbnail(self, file: bytes, file_name: str) -> str:
         """creates the thumbnail and returns a path"""
