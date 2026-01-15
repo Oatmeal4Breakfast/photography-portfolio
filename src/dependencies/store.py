@@ -41,7 +41,7 @@ class ImageStore:
             response.raise_for_status()
             return response.status_code
 
-    def delete_images(self, bucket: str, images: list[str]):
+    def delete_images(self, images: list[str]):
         """deletes objects from the image store"""
         delete: dict[str, str] = {"Key": image for image in images}
-        self.r2_client.delete_objects(Bucket=bucket, Delete=delete)
+        self.r2_client.delete_objects(Bucket=self.bucket, Delete=delete)

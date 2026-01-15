@@ -168,7 +168,9 @@ class AdminService:
         )
 
         params: SignedURLParams = SignedURLParams(
-            Bucket="uploads", Key=path_to_image, ContentType=ValidTypes.jpeg.value
+            Bucket=self.config.bucket,
+            Key=path_to_image,
+            ContentType=ValidTypes.jpeg.value,
         )
         # ttl measured in seconds
         results = await self.store.upload_image(
@@ -195,7 +197,9 @@ class AdminService:
             file_name=file_name, subdir="original"
         )
         params: SignedURLParams = SignedURLParams(
-            Bucket="uploads", Key=path_to_image, ContentType=ValidTypes.jpeg.value
+            Bucket=self.config.bucket,
+            Key=path_to_image,
+            ContentType=ValidTypes.jpeg.value,
         )
         results: int = await self.store.upload_image(
             params=params, ttl=3600, file_data=file

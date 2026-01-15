@@ -20,6 +20,12 @@ class Config(BaseSettings):
     auth_token_expire_minute: int = Field(validation_alias="AUTH_TOKEN_EXPIRE_MINUTES")
     max_image_size: int = Field(validation_alias="MAX_IMAGE_SIZE")
 
+    # boto3 config
+    r2_account_id: str = Field(validation_alias="R2_ACCOUNT_ID")
+    aws_access_key_id: str = Field(validation_alias="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: str = Field(validation_alias="AWS_SECRET_ACCESS_KEY")
+    bucket: str = Field(validation_alias="BUCKET")
+
 
 def get_config() -> Config:
     return Config()
