@@ -1,4 +1,3 @@
-from dependencies.store import SignedURLParams
 from enum import StrEnum
 from typing import Sequence, Protocol
 from io import BytesIO
@@ -12,7 +11,7 @@ import uuid
 import hashlib
 
 from src.dependencies.config import Config, EnvType
-from src.dependencies.store import ImageStore
+from src.dependencies.store import ImageStore, SignedURLParams
 from src.models.schema import Photo
 
 
@@ -29,6 +28,10 @@ class ImageDoesNotExist(Exception):
 
 
 class ImageReadError(Exception):
+    pass
+
+
+class ImageDeleteError(Exception):
     pass
 
 
@@ -110,7 +113,7 @@ class AdminService:
         return hashlib.sha256(file_data).hexdigest()
 
     def _get_output_path(self, file_name: str, subdir: str) -> str:
-        """Returns a string of the output path for the iamge to store in the DB"""
+        """Returns a string of the output path for the image to store in the DB"""
         path: Path = Path("uploads") / subdir / file_name
         if self.config.env_type == EnvType.DEVELOPMENT:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -127,24 +130,19 @@ class AdminService:
             img.save(bytes_arr, format="JPEG")
             return bytes_arr.getvalue()
 
-    def _delete_local(self, photo_paths: list[str | Path]) -> None:
+    def _delete_local(self, photo_paths: list[str]) -> None:
         """helper function to delete local images"""
         for path in photo_paths:
             item: Path = Path(path)
             if item.is_file():
                 item.unlink(missing_ok=True)
 
-    def _delete_remote(self, photo_paths: list[str | Path]) -> None:
-        """heler function to delete remote images"""
-        for path in photo_paths:
-            self.store.delete_object(Bucket=self.config.bucket, Key=path)
-
-    def delete_from_image_store(self, photo_paths: list[str | Path]) -> None:
-        """deletes the path in to the photo from image store"""
-        if self.config.env_type == EnvType.DEVELOPMENT:
-            self._delete_local(photo_paths)
-        else:
-            self._delete_remote(photo_paths)
+    def _delete_remote(self, photo_paths: list[str]) -> tuple[list[str], list[str]]:
+        """helper function to delete remote images"""
+        success_objs, error_objs = self.store.delete_images(images=photo_paths)
+        success = [obj['Key'] for obj in success_objs]
+        errors = [obj['Key'] for obj in error_objs]
+        return success, errors
 
     def _create_local_thumbnail(self, file: bytes, file_name: str) -> str:
         """save file as thumbnail to local storage"""
@@ -158,7 +156,6 @@ class AdminService:
         except IOError:
             raise
 
-    # TODO: fix this method once you learn the aioboto3 SDK
     async def _create_remote_thumbnail(self, file: bytes, file_name: str) -> str:
         """creates a thumbnail and stores it in the r2 bucket"""
         size = (300, 300)
@@ -193,6 +190,7 @@ class AdminService:
 
     async def _create_remote_original(self, file: bytes, file_name: str) -> str:
         """Uploads image of original size to remote image store"""
+        file_data = self._process_image(file)  # to save as jpeg
         path_to_image: str = self._get_output_path(
             file_name=file_name, subdir="original"
         )
@@ -202,7 +200,7 @@ class AdminService:
             ContentType=ValidTypes.jpeg.value,
         )
         results: int = await self.store.upload_image(
-            params=params, ttl=3600, file_data=file
+            params=params, ttl=3600, file_data=file_data
         )
         if results != 200:
             raise IOError(f"Unable to upload {path_to_image}")
@@ -231,7 +229,7 @@ class AdminService:
         query: Select[tuple[Photo]] = select(Photo)
         return self.db.execute(statement=query).scalars().all()
 
-    def add_photo_to_db(self, photo: Photo) -> bool:
+    def _add_photo_to_db(self, photo: Photo) -> bool:
         """add photo to database"""
         try:
             self.db.add(instance=photo)
@@ -241,7 +239,7 @@ class AdminService:
             self.db.rollback()
             raise
 
-    def delete_photo_from_db(self, photo: Photo) -> None:
+    def _delete_photo_from_db(self, photo: Photo) -> None:
         """deletes a photo from the database"""
         try:
             self.db.delete(instance=photo)
@@ -275,9 +273,31 @@ class AdminService:
                 thumbnail_path=thumbnail_path,
                 collection=collection,
             )
-            if self.add_photo_to_db(photo=new_photo):
+            if self._add_photo_to_db(photo=new_photo):
                 return new_photo
         except IOError as e:
             raise IOError(f"Could not save image {e}")
         except Exception as e:
             raise Exception(f"Error processing image {e}")
+
+    def delete_photos(self, photos: list[Photo]) -> None:
+        paths: list[str] = [photo.thumbnail_path for photo in photos] + [
+            photo.original_path for photo in photos
+        ]
+        if self.config.env_type == EnvType.DEVELOPMENT:
+            self._delete_local(photo_paths=paths)
+            for photo in photos:
+                self._delete_photo_from_db(photo)
+        else:
+            success, errors = self._delete_remote(photo_paths=paths)
+            try:
+                for photo in photos:
+                    if (
+                        photo.original_path in success
+                        and photo.thumbnail_path in success
+                    ):
+                        self.db.delete(instance=photo)
+                self.db.commit()
+            except IntegrityError:
+                self.db.rollback()
+                raise

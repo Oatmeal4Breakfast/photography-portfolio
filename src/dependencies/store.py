@@ -22,6 +22,7 @@ class ImageStore:
             aws_secret_access_key=config.aws_secret_access_key,
             region_name="auto",
         )
+        self.bucket: str = config.bucket
 
     def _get_put_signed_url(self, params: SignedURLParams, ttl: int) -> str:
         "Genereate presigned url for put/patch/post requests returns a string"
@@ -41,7 +42,15 @@ class ImageStore:
             response.raise_for_status()
             return response.status_code
 
-    def delete_images(self, images: list[str]):
         """deletes objects from the image store"""
-        delete: dict[str, str] = {"Key": image for image in images}
-        self.r2_client.delete_objects(Bucket=self.bucket, Delete=delete)
+
+    def delete_images(self, images: list[str]) -> tuple[list[str], list[str]]:
+        """deletes a list of images from the image store"""
+        objects: list[dict[str, str]] = [{"Key": image} for image in images]
+        delete: dict[str, list] = {"Objects": objects}
+        results: dict = self.r2_client.delete_objects(Bucket=self.bucket, Delete=delete)
+
+        errors: list[str] = results.get("Errors")
+        success: list[str] = results.get("Deleted")
+
+        return success, errors
