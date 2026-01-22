@@ -2,12 +2,18 @@ from fastapi import (
     FastAPI,
 )
 from fastapi.staticfiles import StaticFiles
+from fastapi_csrf_protect.flexible import CsrfProtect
 from contextlib import asynccontextmanager
 
 from src.dependencies.database import init_db
-from src.dependencies.config import Config, EnvType, get_config
+from src.dependencies.config import Config, EnvType, get_config, CSRFSettings
 
 from src.routers import admin, public
+
+
+@CsrfProtect.load_config
+def get_csrf_config() -> CSRFSettings:
+    return CSRFSettings()
 
 
 @asynccontextmanager

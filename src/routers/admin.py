@@ -1,3 +1,5 @@
+from tkinter import image_names
+from fastapi.datastructures import FormData
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
@@ -16,10 +18,7 @@ from fastapi import (
     Cookie,
 )
 from fastapi.templating import Jinja2Templates
-from fastapi_csrf_protect import CsrfProtect
-
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from fastapi_csrf_protect.flexible import CsrfProtect
 
 from src.services.photo_service import PhotoService
 from src.services.user_service import AuthService
@@ -29,23 +28,13 @@ from src.models.schema import Photo, User
 from src.models.models import DeletePhotoPayload, UserRegistration
 
 from src.dependencies.database import get_db
-from src.dependencies.config import get_config, Config
+from src.dependencies.config import get_config, Config, CSRFSettings
+from src.dependencies.store import ImageStore
 
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
 templates = Jinja2Templates(directory="src/templates")
-
-
-class CSRFSettings(BaseSettings):
-    csrf_secret: str = Field(validation_alias="CSRF")
-    cookie_samesite: str = "none"
-    cookie_name: str = "csrf_token"
-
-
-@CsrfProtect.load_config
-def get_csrf_config() -> CSRFSettings:
-    return CSRFSettings()
 
 
 def get_photo_service(
@@ -61,10 +50,16 @@ def get_auth_service(
     return AuthService(db=db, config=config)
 
 
+def get_image_store(config: Config = Depends(get_db)) -> ImageStore:
+    return ImageStore(config)
+
+
 def get_admin_service(
-    db: Session = Depends(get_db), config: Config = Depends(get_config)
+    db: Session = Depends(get_db),
+    config: Config = Depends(get_config),
+    store: ImageStore = Depends(get_image_store),
 ) -> AdminService:
-    return AdminService()
+    return AdminService(db=db, config=config, store=store)
 
 
 async def user_registration_form(
@@ -108,6 +103,7 @@ def login_form(
             url=request.url_for("registration_form"), status_code=303
         )
     csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
+
     response = templates.TemplateResponse(
         name="login.html", context={"request": request, "csrf_token": csrf_token}
     )
@@ -118,21 +114,26 @@ def login_form(
 @router.post(path="/login")
 async def login(
     request: Request,
-    form: Annotated[OAuth2PasswordRequestForm, Depends(OAuth2PasswordRequestForm)],
     service: Annotated[AuthService, Depends(get_auth_service)],
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     """Authenticate the user with the data from the form and set the session cookie"""
+
     await csrf_protect.validate_csrf(request)
 
-    user: User | None = service.authenticate_user(
-        email=form.username, password=form.password
-    )
+    form_data: FormData = await request.form()
+
+    username = str(form_data.get("username"))
+    password = str(form_data.get("password"))
+
+    print(f"Username: {username} \nPassword: {password}")
+    user: User | None = service.authenticate_user(email=username, password=password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not authenticate user",
         )
+
     expires_delta: timedelta = timedelta(
         minutes=service.config.auth_token_expire_minute
     )
@@ -155,6 +156,7 @@ async def registration_form(
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     """user registration form"""
+
     if service.admin_exists():
         return RedirectResponse(url=request.url_for("login_form"), status_code=303)
     csrf_token, signed_token = csrf_protect.generate_csrf_tokens()
@@ -172,7 +174,10 @@ async def register_user(
     service: Annotated[AuthService, Depends(get_auth_service)],
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    """handler for the post request made in the registration form"""
+
     csrf_protect.validate_csrf(request)
+
     if service.admin_exists():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     if service.get_user_by_email(form_data.email) is not None:
@@ -220,11 +225,14 @@ async def uploads_photo(
     title: Annotated[str, Form()],
     collection: Annotated[str, Form()],
     request: Request,
-    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    service: Annotated[AdminService, Depends(dependency=get_admin_service)],
     config: Annotated[Config, Depends(dependency=get_config)],
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
+    """uploads the photo after validtion to the image store. It then will input the metadata to the DB for future reference"""
+
     csrf_protect.validate_csrf(request)
+
     validator: PhotoValidator = PhotoValidator(file=file, config=config)
 
     file_data: bytes | None = await validator.validate()
@@ -236,7 +244,7 @@ async def uploads_photo(
 
     file_name: str | None = file.filename
 
-    photo = service.upload_photo(
+    photo: Photo | None = await service.upload_photo(
         title=title, file_name=file_name, file_data=file_data, collection=collection
     )
     if photo is None:
@@ -257,7 +265,7 @@ async def uploads_photo(
 )
 async def view_photos(
     request: Request,
-    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    service: Annotated[AdminService, Depends(dependency=get_admin_service)],
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
     """send all photos to view"""
@@ -291,7 +299,8 @@ async def view_photos(
 )
 async def delete_photos(
     request: Request,
-    service: Annotated[PhotoService, Depends(dependency=get_photo_service)],
+    service: Annotated[AdminService, Depends(dependency=get_admin_service)],
+    store: Annotated[ImageStore, Depends(dependency=get_image_store)],
     payload: DeletePhotoPayload,
     csrf_protect: Annotated[CsrfProtect, Depends()],
 ):
@@ -306,6 +315,7 @@ async def delete_photos(
             detail="No photos selected",
         )
 
+    image_paths: list[str] = []
     for photo_id in photo_ids:
         photo: Photo | None = service.get_photo_by_id(id=photo_id)
         if photo is None:
@@ -313,10 +323,11 @@ async def delete_photos(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Photo not found in db",
             )
-        try:
-            service.delete_photo_from_db(photo=photo)
-            service.delete_from_image_store(
-                photo_paths=[photo.thumbnail_path, photo.original_path]
-            )
-        except Exception as e:
-            raise Exception(f"Error: {e}")
+
+        image_paths.append(photo.thumbnail_path)
+        image_paths.append(photo.original_path)
+
+    success, errors = store.delete_images(images=image_paths)
+    if errors:
+        return {"error": f"unable to remove the following images {errors}."}
+    return {"success": 200}

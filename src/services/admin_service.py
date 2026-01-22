@@ -31,10 +31,6 @@ class ImageReadError(Exception):
     pass
 
 
-class ImageDeleteError(Exception):
-    pass
-
-
 class ImageUpload(Protocol):
     filename: str
     content_type: str | None
@@ -113,7 +109,7 @@ class AdminService:
         return hashlib.sha256(file_data).hexdigest()
 
     def _get_output_path(self, file_name: str, subdir: str) -> str:
-        """Returns a string of the output path for the image to store in the DB"""
+        """Returns a string of the output path for the iamge to store in the DB"""
         path: Path = Path("uploads") / subdir / file_name
         if self.config.env_type == EnvType.DEVELOPMENT:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,10 +134,8 @@ class AdminService:
                 item.unlink(missing_ok=True)
 
     def _delete_remote(self, photo_paths: list[str]) -> tuple[list[str], list[str]]:
-        """helper function to delete remote images"""
-        success_objs, error_objs = self.store.delete_images(images=photo_paths)
-        success = [obj['Key'] for obj in success_objs]
-        errors = [obj['Key'] for obj in error_objs]
+        """heler function to delete remote images"""
+        success, errors = self.store.delete_images(images=photo_paths)
         return success, errors
 
     def _create_local_thumbnail(self, file: bytes, file_name: str) -> str:
@@ -191,6 +185,7 @@ class AdminService:
     async def _create_remote_original(self, file: bytes, file_name: str) -> str:
         """Uploads image of original size to remote image store"""
         file_data = self._process_image(file)  # to save as jpeg
+        0
         path_to_image: str = self._get_output_path(
             file_name=file_name, subdir="original"
         )
@@ -205,6 +200,11 @@ class AdminService:
         if results != 200:
             raise IOError(f"Unable to upload {path_to_image}")
         return path_to_image
+
+    def get_photo_by_id(self, id: int) -> Photo | None:
+        """Queries the db for the photo by id"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
+        return self.db.execute(statement=query).scalar_one_or_none()
 
     async def create_thumbnail(self, file: bytes, file_name: str) -> str:
         """creates the thumbnail and returns a path"""
@@ -248,11 +248,20 @@ class AdminService:
             self.db.rollback()
             raise
 
+    def build_photo_url(self, path: str) -> str:
+        if self.config.env_type == EnvType.DEVELOPMENT:
+            return f"/{path}"
+        return f"{self.config.image_store}/{path}"
+
     async def upload_photo(
-        self, title: str, file_name: str, file_data: bytes, collection: str
+        self, title: str, file_name: str | None, file_data: bytes, collection: str
     ) -> Photo | None:
         """Compose method to upload the image to the image store and store the image metadata to db"""
         file_hash: str = self.get_hash(file_data)
+
+        if file_name is None:
+            return
+
         file_name: str = self.sanitize_file(file_name=file_name)
 
         if self.photo_hash_exists(hash=file_hash):

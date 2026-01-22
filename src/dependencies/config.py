@@ -27,5 +27,16 @@ class Config(BaseSettings):
     bucket: str = Field(validation_alias="BUCKET")
 
 
+class CSRFSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        case_sensitive=False, env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+    secret_key: str = Field(validation_alias="CSRF")
+    cookie_secure: bool = False
+    cookie_samesite: str = "lax"
+    cookie_key: str = "csrf_token"
+    token_key: str = "token_key"
+
+
 def get_config() -> Config:
     return Config()
