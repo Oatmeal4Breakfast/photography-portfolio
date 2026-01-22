@@ -69,7 +69,6 @@ class AuthService:
     def authenticate_user(self, email: str, password: str) -> User | None:
         """authenticates the user against the db"""
         user = self.get_user_by_email(email=email)
-        print(user)
         if not user:
             return None
         if not self.verify_password(
