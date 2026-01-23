@@ -15,6 +15,7 @@ class SignedURLParams(BaseModel):
 
 class ImageStore:
     def __init__(self, config: Config) -> None:
+        print(f"R2 Account Id: {config.r2_account_id}")
         self.r2_client: botocore.client.BaseClient = boto3.client(
             service_name="s3",
             endpoint_url=f"https://{config.r2_account_id}.r2.cloudflarestorage.com",

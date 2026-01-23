@@ -13,6 +13,7 @@ from src.services.photo_service import PhotoService
 from src.dependencies.database import get_db
 from src.dependencies.config import get_config, Config
 
+from src.utils.util import build_photo_url
 
 router: APIRouter = APIRouter()
 
@@ -36,7 +37,7 @@ async def home(
     if image is None:
         image: str = "static/images/fallback_hero.jpeg"
 
-    photo_path: str = service.build_photo_url(path=image)
+    photo_path: str = build_photo_url(config=service.config, path=image)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -49,7 +50,7 @@ async def about(
     request: Request, service: Annotated[PhotoService, Depends(get_photo_service)]
 ):
     image: str | None = service.get_about_image()
-    photo_path: str = service.build_photo_url(path=image)
+    photo_path: str = build_photo_url(config=service.config, path=image)
     return templates.TemplateResponse(
         request=request,
         name="about.html",

@@ -2,6 +2,8 @@ from enum import Enum
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
+import secrets
+
 
 class EnvType(Enum):
     PRODUCTION = "production"
@@ -15,7 +17,7 @@ class Config(BaseSettings):
     db_uri: str = Field(validation_alias="DB_URI")
     env_type: EnvType = Field(validation_alias="ENV_TYPE")
     image_store: str = Field(validation_alias="IMAGE_STORE_BASE_URL")
-    secret_key: str = Field(validation_alias="SECRET_KEY")
+    secret_key: str = secrets.token_urlsafe(nbytes=32)
     algorithm: str = Field(validation_alias="ALGORITHM")
     auth_token_expire_minute: int = Field(validation_alias="AUTH_TOKEN_EXPIRE_MINUTES")
     max_image_size: int = Field(validation_alias="MAX_IMAGE_SIZE")
@@ -31,7 +33,7 @@ class CSRFSettings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False, env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
-    secret_key: str = Field(validation_alias="CSRF")
+    secret_key: str = secrets.token_urlsafe(nbytes=16)  # Field(validation_alias="CSRF")
     cookie_secure: bool = False
     cookie_samesite: str = "lax"
     cookie_key: str = "csrf_token"

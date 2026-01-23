@@ -248,11 +248,6 @@ class AdminService:
             self.db.rollback()
             raise
 
-    def build_photo_url(self, path: str) -> str:
-        if self.config.env_type == EnvType.DEVELOPMENT:
-            return f"/{path}"
-        return f"{self.config.image_store}/{path}"
-
     async def upload_photo(
         self, title: str, file_name: str | None, file_data: bytes, collection: str
     ) -> Photo | None:

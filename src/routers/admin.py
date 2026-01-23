@@ -28,8 +28,10 @@ from src.models.schema import Photo, User
 from src.models.models import DeletePhotoPayload, UserRegistration
 
 from src.dependencies.database import get_db
-from src.dependencies.config import get_config, Config, CSRFSettings
+from src.dependencies.config import get_config, Config
 from src.dependencies.store import ImageStore
+
+from src.utils.util import build_photo_url
 
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
@@ -50,8 +52,8 @@ def get_auth_service(
     return AuthService(db=db, config=config)
 
 
-def get_image_store(config: Config = Depends(get_db)) -> ImageStore:
-    return ImageStore(config)
+def get_image_store(config: Config = Depends(get_config)) -> ImageStore:
+    return ImageStore(config=config)
 
 
 def get_admin_service(
@@ -126,7 +128,6 @@ async def login(
     username = str(form_data.get("username"))
     password = str(form_data.get("password"))
 
-    print(f"Username: {username} \nPassword: {password}")
     user: User | None = service.authenticate_user(email=username, password=password)
     if user is None:
         raise HTTPException(
@@ -274,7 +275,9 @@ async def view_photos(
 
     image_data: list[dict[str, str | int]] = []
     for photo in photos:
-        path: str | None = service.build_photo_url(path=photo.thumbnail_path)
+        path: str | None = build_photo_url(
+            config=service.config, path=photo.thumbnail_path
+        )
         photo
         if path is None:
             image_data.append({"id": photo.id, "path": ""})
@@ -286,11 +289,7 @@ async def view_photos(
         context={"request": request, "photos": image_data, "csrf_token": csrf_token},
     )
     csrf_protect.set_csrf_cookie(signed_token, response)
-    return templates.TemplateResponse(
-        request=request,
-        name="admin.html",
-        context={"request": request, "photos": image_data},
-    )
+    return response
 
 
 @router.post(
