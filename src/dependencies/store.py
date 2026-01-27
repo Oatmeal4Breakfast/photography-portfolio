@@ -2,9 +2,23 @@ import boto3
 import botocore
 import httpx
 
+import aiofiles
+from aiofiles import os as aio_os
+
+from typing import Protocol, List, Tuple
 from pydantic import BaseModel
 
 from src.dependencies.config import Config
+
+
+type ImagePaths = List[str]
+
+
+class ImageStore(Protocol):
+    async def upload_image(self, file_data: bytes, path_to_save: str) -> bool: ...
+    async def delete_images(
+        self, image_paths: ImagePaths
+    ) -> Tuple[ImagePaths, ImagePaths]: ...
 
 
 class SignedURLParams(BaseModel):
@@ -13,9 +27,37 @@ class SignedURLParams(BaseModel):
     ContentType: str
 
 
-class ImageStore:
+class LocalStore:
     def __init__(self, config: Config) -> None:
-        print(f"R2 Account Id: {config.r2_account_id}")
+        self.config: Config = config
+
+    async def upload_image(self, file_data: bytes, path_to_save: str) -> bool:
+        try:
+            async with aiofiles.open(file=path_to_save, mode="wb") as fp:
+                await fp.write(file_data)
+            return True
+        except FileExistsError:
+            raise
+        except IOError:
+            raise
+
+    async def delete_images(
+        self, image_paths: ImagePaths
+    ) -> Tuple[ImagePaths, ImagePaths]:
+        success: ImagePaths = []
+        errors: ImagePaths = []
+        for image_path in image_paths:
+            try:
+                await aio_os.unlink(image_path)
+            except FileExistsError:
+                errors.append(image_path)
+            success.append(image_path)
+
+        return success, errors
+
+
+class RemoteStore:
+    def __init__(self, config: Config) -> None:
         self.r2_client: botocore.client.BaseClient = boto3.client(
             service_name="s3",
             endpoint_url=f"https://{config.r2_account_id}.r2.cloudflarestorage.com",
@@ -45,9 +87,13 @@ class ImageStore:
 
         """deletes objects from the image store"""
 
-    def delete_images(self, images: list[str]) -> tuple[list[str], list[str]]:
+    async def delete_images(
+        self, image_paths: ImagePaths
+    ) -> tuple[ImagePaths, ImagePaths]:
         """deletes a list of images from the image store"""
-        objects: list[dict[str, str]] = [{"Key": image} for image in images]
+        objects: list[dict[str, str]] = [
+            {"Key": image_path} for image_path in image_paths
+        ]
         delete: dict[str, list] = {"Objects": objects}
         results: dict = self.r2_client.delete_objects(Bucket=self.bucket, Delete=delete)
 

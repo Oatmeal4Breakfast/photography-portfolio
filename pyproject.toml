@@ -22,4 +22,5 @@ dependencies = [
     "fastapi-csrf-protect>=1.0.7",
     "boto3>=1.42.27",
     "httpx>=0.28.1",
+    "aiofiles>=25.1.0",
 ]
