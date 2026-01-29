@@ -1,12 +1,12 @@
 import boto3
+import asyncio
 import botocore
-import httpx
-
 import aiofiles
-from aiofiles import os as aio_os
 
+from botocore.exceptions import ClientError, EndpointConnectionError, BotoCoreError
+from aiofiles import os as aio_os
+from functools import partial
 from typing import Protocol, List, Tuple
-from pydantic import BaseModel
 
 from src.dependencies.config import Config
 
@@ -21,16 +21,7 @@ class ImageStore(Protocol):
     ) -> Tuple[ImagePaths, ImagePaths]: ...
 
 
-class SignedURLParams(BaseModel):
-    Bucket: str
-    Key: str
-    ContentType: str
-
-
 class LocalStore:
-    def __init__(self, config: Config) -> None:
-        self.config: Config = config
-
     async def upload_image(self, file_data: bytes, path_to_save: str) -> bool:
         try:
             async with aiofiles.open(file=path_to_save, mode="wb") as fp:
@@ -49,9 +40,9 @@ class LocalStore:
         for image_path in image_paths:
             try:
                 await aio_os.unlink(image_path)
-            except FileExistsError:
+                success.append(image_path)
+            except FileNotFoundError:
                 errors.append(image_path)
-            success.append(image_path)
 
         return success, errors
 
@@ -67,25 +58,24 @@ class RemoteStore:
         )
         self.bucket: str = config.bucket
 
-    def _get_put_signed_url(self, params: SignedURLParams, ttl: int) -> str:
-        "Genereate presigned url for put/patch/post requests returns a string"
-        return self.r2_client.generate_presigned_url(
-            "put_object", Params=params.model_dump(), ExpiresIn=ttl
-        )
-
-    async def upload_image(
-        self, params: SignedURLParams, ttl: int, file_data: bytes
-    ) -> int:
+    async def upload_image(self, file_data: bytes, path_to_save: str) -> bool:
         """send the upload request to the signed URL"""
-        url: str = self._get_put_signed_url(params, ttl)
-        async with httpx.AsyncClient() as client:
-            response = await client.put(
-                url, content=file_data, headers={"Content-Type": params.ContentType}
-            )
-            response.raise_for_status()
-            return response.status_code
-
-        """deletes objects from the image store"""
+        put_object_partial = partial(
+            self.r2_client.put_object,
+            Body=file_data,
+            Bucket=self.bucket,
+            Key=path_to_save,
+        )
+        try:
+            await asyncio.to_thread(put_object_partial)
+            return True
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            raise IOError(f"R2 Upload failed [{error_code}]: {e}")
+        except EndpointConnectionError as e:
+            raise IOError(f"Cannot connect to endpoint {e}")
+        except BotoCoreError as e:
+            raise IOError(f"R2 client error: {e}")
 
     async def delete_images(
         self, image_paths: ImagePaths
@@ -95,9 +85,24 @@ class RemoteStore:
             {"Key": image_path} for image_path in image_paths
         ]
         delete: dict[str, list] = {"Objects": objects}
-        results: dict = self.r2_client.delete_objects(Bucket=self.bucket, Delete=delete)
+        delete_object_partial = partial(
+            self.r2_client.delete_objects, Bucket=self.bucket, Delete=delete
+        )
 
-        errors: list[str] = results.get("Errors")
-        success: list[str] = results.get("Deleted")
+        try:
+            results = await asyncio.to_thread(delete_object_partial)
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            raise IOError(f"R2 Delete failed [{error_code}]: {e}")
+        except EndpointConnectionError as e:
+            raise IOError(f"Cannot connect to endpoint {e}")
+        except BotoCoreError as e:
+            raise IOError(f"R2 client error: {e}")
+
+        deleted: list[dict] = results.get("Deleted", [])
+        failed: list[dict] = results.get("Errors", [])
+
+        success: ImagePaths = [obj["Key"] for obj in deleted]
+        errors: ImagePaths = [obj["Key"] for obj in failed]
 
         return success, errors

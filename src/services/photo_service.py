@@ -2,7 +2,6 @@ from typing import Sequence
 from sqlalchemy import select, Select
 from sqlalchemy.orm import Session
 
-import hashlib
 
 from src.models.schema import Photo
 from src.dependencies.config import Config

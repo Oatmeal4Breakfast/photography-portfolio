@@ -1,7 +1,5 @@
-from tkinter import image_names
 from fastapi.datastructures import FormData
 from datetime import timedelta
-from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated, Sequence
 from sqlalchemy.orm import Session
 
@@ -28,8 +26,8 @@ from src.models.schema import Photo, User
 from src.models.models import DeletePhotoPayload, UserRegistration
 
 from src.dependencies.database import get_db
-from src.dependencies.config import get_config, Config
-from src.dependencies.store import ImageStore
+from src.dependencies.config import get_config, Config, EnvType
+from src.dependencies.store import ImageStore, LocalStore, RemoteStore
 
 from src.utils.util import build_photo_url
 
@@ -53,7 +51,9 @@ def get_auth_service(
 
 
 def get_image_store(config: Config = Depends(get_config)) -> ImageStore:
-    return ImageStore(config=config)
+    if config.env_type == EnvType.DEVELOPMENT:
+        return LocalStore()
+    return RemoteStore(config=config)
 
 
 def get_admin_service(
