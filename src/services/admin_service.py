@@ -11,8 +11,10 @@ import uuid
 import hashlib
 
 from src.dependencies.config import Config, EnvType
-from src.dependencies.store import ImageStore, SignedURLParams
+from src.dependencies.store import ImageStore
 from src.models.schema import Photo
+
+# TODO: Implement the abstracted methods. Lets see if I can get rid of any methods not used.
 
 
 class InvalidImageType(Exception):
