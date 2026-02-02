@@ -51,6 +51,9 @@ def get_auth_service(
 
 
 def get_image_store(config: Config = Depends(get_config)) -> ImageStore:
+    """
+    check the env type and return apppropriate ImageStore type based on results
+    """
     if config.env_type == EnvType.DEVELOPMENT:
         return LocalStore()
     return RemoteStore(config=config)
@@ -70,7 +73,9 @@ async def user_registration_form(
     email: Annotated[str, Form()],
     password: Annotated[str, Form()],
 ) -> UserRegistration:
-    """verify the form with a pydantic model"""
+    """
+    verify the form with a pydantic model
+    """
     return UserRegistration(
         firstname=firstname, lastname=lastname, email=email, password=password
     )
@@ -326,7 +331,7 @@ async def delete_photos(
         image_paths.append(photo.thumbnail_path)
         image_paths.append(photo.original_path)
 
-    success, errors = store.delete_images(images=image_paths)
+    success, errors = await store.delete_images(image_paths=image_paths)
     if errors:
         return {"error": f"unable to remove the following images {errors}."}
     return {"success": 200}

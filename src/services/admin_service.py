@@ -11,7 +11,7 @@ import uuid
 import hashlib
 
 from src.dependencies.config import Config, EnvType
-from src.dependencies.store import ImageStore
+from src.dependencies.store import ImageStore, ImagePaths
 from src.models.schema import Photo
 
 # TODO: Implement the abstracted methods. Lets see if I can get rid of any methods not used.
@@ -100,13 +100,13 @@ class AdminService:
         self.config: Config = config
         self.store: ImageStore = store
 
-    def sanitize_file(self, file_name: str) -> str:
+    def _sanitize_file(self, file_name: str) -> str:
         """sanitizes the file name with a UUID applied"""
         stem: str = Path(file_name).stem
         sanitized_stem: str = stem.replace(" ", "_")[:50]
         return f"{sanitized_stem}_{uuid.uuid4().hex[:8]}.jpeg"
 
-    def get_hash(self, file_data: bytes) -> str:
+    def _get_hash(self, file_data: bytes) -> str:
         """Returns the hashed string of the file"""
         return hashlib.sha256(file_data).hexdigest()
 
@@ -128,109 +128,6 @@ class AdminService:
             img.save(bytes_arr, format="JPEG")
             return bytes_arr.getvalue()
 
-    def _delete_local(self, photo_paths: list[str]) -> None:
-        """helper function to delete local images"""
-        for path in photo_paths:
-            item: Path = Path(path)
-            if item.is_file():
-                item.unlink(missing_ok=True)
-
-    def _delete_remote(self, photo_paths: list[str]) -> tuple[list[str], list[str]]:
-        """heler function to delete remote images"""
-        success, errors = self.store.delete_images(images=photo_paths)
-        return success, errors
-
-    def _create_local_thumbnail(self, file: bytes, file_name: str) -> str:
-        """save file as thumbnail to local storage"""
-        size = (300, 300)
-        path_to_image: str = self._get_output_path(file_name, subdir="thumbnail")
-        file_data: bytes = self._process_image(file, size)
-        try:
-            with open(path_to_image, "wb") as fp:
-                fp.write(file_data)
-            return path_to_image
-        except IOError:
-            raise
-
-    async def _create_remote_thumbnail(self, file: bytes, file_name: str) -> str:
-        """creates a thumbnail and stores it in the r2 bucket"""
-        size = (300, 300)
-        file_data: bytes = self._process_image(file, size)
-        path_to_image: str = self._get_output_path(
-            file_name=file_name, subdir="thumbnail"
-        )
-
-        params: SignedURLParams = SignedURLParams(
-            Bucket=self.config.bucket,
-            Key=path_to_image,
-            ContentType=ValidTypes.jpeg.value,
-        )
-        # ttl measured in seconds
-        results = await self.store.upload_image(
-            params=params, ttl=3600, file_data=file_data
-        )
-        if results != 200:
-            raise IOError(f"Unable to upload {path_to_image} to remote")
-        return path_to_image
-
-    def _create_local_original(self, file: bytes, file_name: str) -> str:
-        """returns path to original image"""
-        path_to_save = self._get_output_path(file_name, subdir="original")
-        file_data = self._process_image(file)
-        try:
-            with open(path_to_save, "wb") as fp:
-                fp.write(file_data)
-            return path_to_save
-        except IOError:
-            raise
-
-    async def _create_remote_original(self, file: bytes, file_name: str) -> str:
-        """Uploads image of original size to remote image store"""
-        file_data = self._process_image(file)  # to save as jpeg
-        0
-        path_to_image: str = self._get_output_path(
-            file_name=file_name, subdir="original"
-        )
-        params: SignedURLParams = SignedURLParams(
-            Bucket=self.config.bucket,
-            Key=path_to_image,
-            ContentType=ValidTypes.jpeg.value,
-        )
-        results: int = await self.store.upload_image(
-            params=params, ttl=3600, file_data=file_data
-        )
-        if results != 200:
-            raise IOError(f"Unable to upload {path_to_image}")
-        return path_to_image
-
-    def get_photo_by_id(self, id: int) -> Photo | None:
-        """Queries the db for the photo by id"""
-        query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
-        return self.db.execute(statement=query).scalar_one_or_none()
-
-    async def create_thumbnail(self, file: bytes, file_name: str) -> str:
-        """creates the thumbnail and returns a path"""
-        if self.config.env_type == EnvType.DEVELOPMENT:
-            return self._create_local_thumbnail(file, file_name)
-        return await self._create_remote_thumbnail(file, file_name)
-
-    async def create_original(self, file: bytes, file_name: str) -> str:
-        """create the original and returns a path"""
-        if self.config.env_type == EnvType.DEVELOPMENT:
-            return self._create_local_original(file, file_name)
-        return await self._create_remote_original(file, file_name)
-
-    def photo_hash_exists(self, hash: str) -> bool:
-        """checks the db for an existing photo of the same hash"""
-        query: Select[tuple[Photo]] = select(Photo).where(Photo.hash == hash)
-        result: Photo | None = self.db.execute(statement=query).scalars().one_or_none()
-        return result is not None
-
-    def get_all_photos(self) -> Sequence[Photo]:
-        """Queries the db for all photos in the db"""
-        query: Select[tuple[Photo]] = select(Photo)
-        return self.db.execute(statement=query).scalars().all()
-
     def _add_photo_to_db(self, photo: Photo) -> bool:
         """add photo to database"""
         try:
@@ -250,25 +147,62 @@ class AdminService:
             self.db.rollback()
             raise
 
+    async def _create_thumbnail(self, file: bytes, file_name: str) -> str:
+        """creates the thumbnail and returns a path"""
+        path_to_save: str = self._get_output_path(file_name, "thumbnail")
+        file_data: bytes = self._process_image(file, size=(300, 300))
+        results: bool = await self.store.upload_image(file_data, path_to_save)
+        if not results:
+            raise IOError(f"Could not create thumbnail {path_to_save}")
+        return path_to_save
+
+    async def _create_original(self, file: bytes, file_name: str) -> str:
+        """create the original and returns a path"""
+        path_to_save: str = self._get_output_path(file_name, "original")
+        file_data: bytes = self._process_image(file)
+        results: bool = await self.store.upload_image(file_data, path_to_save)
+        if not results:
+            raise IOError(f"Could not create original {path_to_save}")
+        return path_to_save
+
+    def photo_hash_exists(self, hash: str) -> bool:
+        """checks the db for an existing photo of the same hash"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.hash == hash)
+        result: Photo | None = self.db.execute(statement=query).scalars().one_or_none()
+        return result is not None
+
+    def get_all_photos(self) -> Sequence[Photo]:
+        """Queries the db for all photos in the db"""
+        query: Select[tuple[Photo]] = select(Photo)
+        return self.db.execute(statement=query).scalars().all()
+
+    def get_photo_by_id(self, id: int) -> Photo | None:
+        """Queries the db for the photo by id"""
+        query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
+        return self.db.execute(statement=query).scalar_one_or_none()
+
     async def upload_photo(
         self, title: str, file_name: str | None, file_data: bytes, collection: str
     ) -> Photo | None:
-        """Compose method to upload the image to the image store and store the image metadata to db"""
-        file_hash: str = self.get_hash(file_data)
+        """
+        Upload the image to the Image Store and add to the Photo Object to the Database
+        """
+
+        file_hash: str = self._get_hash(file_data)
 
         if file_name is None:
             return
 
-        file_name: str = self.sanitize_file(file_name=file_name)
+        file_name: str = self._sanitize_file(file_name=file_name)
 
         if self.photo_hash_exists(hash=file_hash):
             raise ValueError("Duplicate Photo")
 
         try:
-            thumbnail_path: str = await self.create_thumbnail(
+            thumbnail_path: str = await self._create_thumbnail(
                 file=file_data, file_name=file_name
             )
-            original_path: str = await self.create_original(
+            original_path: str = await self._create_original(
                 file=file_data, file_name=file_name
             )
             new_photo: Photo = Photo(
@@ -286,24 +220,27 @@ class AdminService:
         except Exception as e:
             raise Exception(f"Error processing image {e}")
 
-    def delete_photos(self, photos: list[Photo]) -> None:
-        paths: list[str] = [photo.thumbnail_path for photo in photos] + [
-            photo.original_path for photo in photos
-        ]
-        if self.config.env_type == EnvType.DEVELOPMENT:
-            self._delete_local(photo_paths=paths)
+    async def delete_photos(self, photos: list[Photo]) -> None:
+        """
+        Builds ImagePaths and calls the store delete method to then filter make the attempt to remove
+        successfully deleted images from the Database
+        """
+        paths: ImagePaths = []
+        for photo in photos:
+            paths.append(photo.thumbnail_path)
+            paths.append(photo.original_path)
+
+        results: tuple[ImagePaths, ImagePaths] = await self.store.delete_images(
+            image_paths=paths
+        )
+
+        success, errors = results
+
+        try:
             for photo in photos:
-                self._delete_photo_from_db(photo)
-        else:
-            success, errors = self._delete_remote(photo_paths=paths)
-            try:
-                for photo in photos:
-                    if (
-                        photo.original_path in success
-                        and photo.thumbnail_path in success
-                    ):
-                        self.db.delete(instance=photo)
-                self.db.commit()
-            except IntegrityError:
-                self.db.rollback()
-                raise
+                if photo.original_path in success and photo.thumbnail_path in success:
+                    self.db.delete(instance=photo)
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise
