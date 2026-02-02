@@ -319,7 +319,7 @@ async def delete_photos(
             detail="No photos selected",
         )
 
-    image_paths: list[str] = []
+    photos: list[Photo] = []
     for photo_id in photo_ids:
         photo: Photo | None = service.get_photo_by_id(id=photo_id)
         if photo is None:
@@ -328,10 +328,7 @@ async def delete_photos(
                 detail="Photo not found in db",
             )
 
-        image_paths.append(photo.thumbnail_path)
-        image_paths.append(photo.original_path)
+        photos.append(photo)
 
-    success, errors = await store.delete_images(image_paths=image_paths)
-    if errors:
-        return {"error": f"unable to remove the following images {errors}."}
-    return {"success": 200}
+    await service.delete_photos(photos)
+    return {"success", 200}
