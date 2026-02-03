@@ -35,9 +35,7 @@ class Photo(Base):
     thumbnail_path: Mapped[str] = mapped_column(
         String(length=300), nullable=False, unique=True
     )
-    collection: Mapped[str] = mapped_column(
-        String(length=100), nullable=False, unique=True
-    )
+    collection: Mapped[str] = mapped_column(String(length=100), nullable=False)
 
 
 class User(Base):

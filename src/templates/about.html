@@ -1,0 +1,22 @@
+{% extends "base.html" %} {% set activate_page = "about" %} {% block title %}
+About {% endblock %} {% block content %}
+
+<section>
+  <div class="flex flex-row p-4 m-4 px-8">
+    <div class="ml-4 mr-20">
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
+        nisl nunc, tincidunt vitae tincidunt quis, aliquet a mauris. Ut eget
+        semper libero, eu semper diam. Donec congue commodo lectus tristique
+        sagittis. Nulla in dapibus ligula. Etiam eget lorem et urna ultricies
+        elementum ut sit amet ipsum. Duis dapibus id quam id hendrerit.
+        Phasellus vel faucibus urna. Nam a ullamcorper leo. Cras vehicula,
+        turpis vel sollicitudin aliquet, quam erat rhoncus enim, quis ultricies
+        erat mauris in tortor.
+      </p>
+    </div>
+    <div><img src="{{ photo }}" alt="Portrait of the artist" /></div>
+  </div>
+</section>
+
+{% endblock %}
