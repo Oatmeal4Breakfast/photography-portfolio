@@ -42,19 +42,3 @@ jobs:
         BUCKET: test
       run: |
         uv run pytest tests/ -v --tb=short
-
-    - name: Check test coverage
-      env:
-        DB_URI: sqlite:///test.db
-        ENV_TYPE: development
-        IMAGE_STORE_BASE_URL: localhost
-        SECRET_KEY: test-secret-key-for-ci
-        ALGORITHM: HS256
-        AUTH_TOKEN_EXPIRE_MINUTES: 15
-        MAX_IMAGE_SIZE: 10485760
-        R2_ACCOUNT_ID: test
-        AWS_ACCESS_KEY_ID: test
-        AWS_SECRET_ACCESS_KEY: test
-        BUCKET: test
-      run: |
-        uv run pytest tests/ --cov=src --cov-report=term-missing
