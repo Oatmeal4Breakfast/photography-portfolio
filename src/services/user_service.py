@@ -78,10 +78,10 @@ class AuthService:
         return user
 
     def create_access_token(
-        self, data: dict, expires_delta: timedelta | None = None
+        self, data: dict[str, str], expires_delta: timedelta | None = None
     ) -> str:
         """create access token for authentication"""
-        to_encode = data.copy()
+        to_encode: dict[str, str] = data.copy()
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:
