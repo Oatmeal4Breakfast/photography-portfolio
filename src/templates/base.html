@@ -48,8 +48,7 @@
                 class="{% if active_page == 'collections' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
                 >Collections</a
               >
-              <!-- Dropdown (hidden by default, shows on hover) -->
-              <div id="collections-menu" class="hidden absolute left-0 top-full mt-2 w-48 bg-white shadow-lg rounded-md border border-stone-200 z-50">
+              <div id="collections-menu" class="hidden absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-md border border-stone-200 z-50">
                 <ul class="py-2">
                   {% for collection in collections %}
                   <li>
@@ -78,32 +77,28 @@
     <main>{% block content %}{% endblock %}</main>
 
     <script>
-      // Collections dropdown interactivity
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('Dropdown script loaded');
-
         const dropdown = document.getElementById('collections-dropdown');
         const menu = document.getElementById('collections-menu');
-
-        console.log('Dropdown element:', dropdown);
-        console.log('Menu element:', menu);
+        let hideTimeout;
 
         if (dropdown && menu) {
-          console.log('Both elements found! Adding listeners...');
-
-          // Show dropdown on mouse enter
-          dropdown.addEventListener('mouseenter', function() {
-            console.log('Mouse entered - showing menu');
+          function showMenu() {
+            clearTimeout(hideTimeout);
             menu.classList.remove('hidden');
-          });
+          }
 
-          // Hide dropdown on mouse leave
-          dropdown.addEventListener('mouseleave', function() {
-            console.log('Mouse left - hiding menu');
-            menu.classList.add('hidden');
-          });
-        } else {
-          console.error('Could not find dropdown or menu element!');
+          function hideMenu() {
+            hideTimeout = setTimeout(function() {
+              menu.classList.add('hidden');
+            }, 200);
+          }
+
+          dropdown.addEventListener('mouseenter', showMenu);
+          dropdown.addEventListener('mouseleave', hideMenu);
+
+          menu.addEventListener('mouseenter', showMenu);
+          menu.addEventListener('mouseleave', hideMenu);
         }
       });
     </script>

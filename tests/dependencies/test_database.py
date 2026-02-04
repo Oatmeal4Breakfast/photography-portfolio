@@ -44,7 +44,7 @@ class TestBuildUrl:
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "sqlite:///test.db"
 
-        with patch("src.database.PROJECT_ROOT", tmp_path):
+        with patch("src.dependencies.database.PROJECT_ROOT", tmp_path):
             result = _build_db_uri(config)
 
             assert result.startswith("sqlite:///")
@@ -56,7 +56,7 @@ class TestBuildUrl:
         config.env_type = EnvType.DEVELOPMENT
         config.db_uri = "sqlite:///data/nested/test.db"
 
-        with patch("src.database.PROJECT_ROOT", tmp_path):
+        with patch("src.dependencies.database.PROJECT_ROOT", tmp_path):
             _build_db_uri(config)
 
             expected_dir = tmp_path / "data" / "nested"
@@ -154,7 +154,7 @@ class TestGetDb:
         except StopIteration:
             pass
 
-        assert not session.is_active
+        assert not session.in_transaction()
 
     def test_closes_session_on_exception(self, setup_test_db):
         """Test that session closes even on exception"""
@@ -166,7 +166,7 @@ class TestGetDb:
         except Exception:
             pass
 
-        assert not session.is_active
+        assert not session.in_transaction()
 
     def test_can_execute_queries(self, db_session):
         """Test that session can execute queries"""
