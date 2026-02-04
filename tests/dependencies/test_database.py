@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from sqlalchemy import create_engine, inspect, text
 
-from src.config import Config, EnvType
-from src.database import (
+from src.dependencies.config import Config, EnvType
+from src.dependencies.database import (
     init_db,
     get_db,
     _build_db_uri,
@@ -11,7 +11,7 @@ from src.database import (
     _override_engine_for_tests,
 )
 
-from src.models.models import Base
+from src.models.schema import Base
 
 
 @pytest.fixture()

@@ -38,6 +38,13 @@ def _create_db_engine(db_uri: str) -> Engine:
     return create_engine(db_uri, connect_args={"check_same_thread": False})
 
 
+def _override_engine_for_tests(test_engine: Engine) -> None:
+    """Override the global engine and SessionLocal for testing"""
+    global engin, SessionLocal
+    engine = test_engine
+    SessionLocal = sessionmaker(bind=test_engine)
+
+
 config: Config = get_config()
 db_uri: str = _build_db_uri(config)
 engine: Engine = _create_db_engine(db_uri)
