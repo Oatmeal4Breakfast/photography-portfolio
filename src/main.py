@@ -3,7 +3,6 @@ from fastapi import (
     Request,
     status,
 )
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_csrf_protect.flexible import CsrfProtect

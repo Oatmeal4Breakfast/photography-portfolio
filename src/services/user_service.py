@@ -4,6 +4,7 @@ from sqlalchemy import select, Select
 from sqlalchemy.exc import IntegrityError
 from pwdlib import PasswordHash
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from src.dependencies.config import Config
 from src.models.schema import User, UserType
@@ -78,10 +79,10 @@ class AuthService:
         return user
 
     def create_access_token(
-        self, data: dict[str, str], expires_delta: timedelta | None = None
+        self, data: dict[str, Any], expires_delta: timedelta | None = None
     ) -> str:
         """create access token for authentication"""
-        to_encode: dict[str, str] = data.copy()
+        to_encode: dict[str, Any] = data.copy()
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:

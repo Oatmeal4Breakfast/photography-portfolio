@@ -17,14 +17,6 @@ class PhotoService:
         query: Select[tuple[Photo]] = select(Photo).where(Photo.hash == hash)
         return self.db.execute(statement=query).scalars().one_or_none()
 
-    def get_photo_by_file_name(self, file_name: str) -> Photo | None:
-        """Queries the db for photo by file_name"""
-        original_file_name: str = file_name.split(sep="_")[0]
-        query: Select[tuple[Photo]] = select(Photo).where(
-            Photo.file_name.contains(other=original_file_name)
-        )
-        return self.db.execute(statement=query).scalars().one_or_none()
-
     def get_photo_by_id(self, id: int) -> Photo | None:
         """Queries the db for the photo by id"""
         query: Select[tuple[Photo]] = select(Photo).where(Photo.id == id)
