@@ -33,7 +33,7 @@ def get_collections_for_nav() -> list[str]:
         db.close()
 
 
-templates.env.globals["collections"] = get_collections_for_nav()
+templates.env.globals["collections"] = get_collections_for_nav
 
 
 def get_photo_service(
