@@ -64,8 +64,10 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 app.mount(path="/static", app=StaticFiles(directory="src/static"), name="static")
-app.mount(
-    path="/uploads",
-    app=StaticFiles(directory="uploads"),
-    name="uploads",
-)
+
+if get_config().env_type == EnvType.DEVELOPMENT:
+    app.mount(
+        path="/uploads",
+        app=StaticFiles(directory="uploads"),
+        name="uploads",
+    )
