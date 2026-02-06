@@ -2,7 +2,7 @@ from enum import StrEnum
 from typing import Sequence, Protocol
 from io import BytesIO
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageOps
 from sqlalchemy import select, Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -121,6 +121,7 @@ class AdminService:
         """process the image and return compresses or original file size"""
         bytes_arr = BytesIO()
         with Image.open(fp=BytesIO(initial_bytes=file)) as img:
+            img = ImageOps.exif_transpose(img)
             if size is None:
                 img.save(bytes_arr, format="JPEG")
                 return bytes_arr.getvalue()
