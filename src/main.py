@@ -4,17 +4,15 @@ from fastapi import (
     status,
 )
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi_csrf_protect.flexible import CsrfProtect
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.dependencies.database import init_db
 from src.dependencies.config import Config, EnvType, get_config, CSRFSettings
+from src.dependencies.templates import templates
 
 from src.routers import admin, public
-
-templates = Jinja2Templates(directory="src/templates")
 
 
 @CsrfProtect.load_config
