@@ -26,8 +26,14 @@ if db_config.db_uri.startswith("sqlite:///") and not db_config.db_uri.startswith
     relative_path = db_config.db_uri.replace("sqlite:///", "")
     absolute_path = PROJECT_ROOT / relative_path
     absolute_path.parent.mkdir(parents=True, exist_ok=True)
-
     db_uri = f"sqlite:///{absolute_path}"
+else:
+    db_uri = db_config.db_uri
+
+if db_uri.startswith("postgres://"):
+    db_uri = db_uri.replace("postgres://", "postgresql+psycopg://")
+elif db_uri.startswith("postgresql://"):
+    db_uri = db_uri.replace("postgresql", "postgresql+psycopg")
 
 config.set_main_option("sqlalchemy.url", db_uri)
 
