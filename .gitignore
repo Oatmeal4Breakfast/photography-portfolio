@@ -13,6 +13,8 @@ wheels/
 
 # .env files
 .env
+*.env
+.env.*
 
 # misc. scripts
 test_db.py

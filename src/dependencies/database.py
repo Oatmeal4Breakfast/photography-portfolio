@@ -35,12 +35,15 @@ def _build_db_uri(config: Config) -> str:
 
 def _create_db_engine(db_uri: str) -> Engine:
     """create an engine"""
-    return create_engine(db_uri, connect_args={"check_same_thread": False})
+    connect_args: dict[str, bool] = {}
+    if db_uri.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+    return create_engine(db_uri, connect_args=connect_args)
 
 
 def _override_engine_for_tests(test_engine: Engine) -> None:
     """Override the global engine and SessionLocal for testing"""
-    global engin, SessionLocal
+    global engine, SessionLocal
     engine = test_engine
     SessionLocal = sessionmaker(bind=test_engine)
 
