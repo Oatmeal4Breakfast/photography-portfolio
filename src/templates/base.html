@@ -26,47 +26,94 @@
   <body>
     <header>
       {% set active_page = active_page|default('home') %}
-      <nav class="flex my-4 mx-8">
-        <div class="flex-auto my-4 mx-8">
-          <a href="/" class="text-3xl font-display font-medium tracking-widest"
-            >Elvin Salcedo</a
-          >
+      <nav class="my-4 mx-8">
+        <div class="flex justify-between items-center">
+          <div class="my-4 mx-8">
+            <a href="/" class="text-3xl font-display font-medium tracking-widest"
+              >Elvin Salcedo</a
+            >
+          </div>
+
+          <button id="mobile-menu-button" class="lg:hidden p-2 text-stone-600 hover:text-orange-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+
+          <div class="hidden lg:flex items-center">
+            <ul class="flex space-x-4 my-4 mx-8 font-light text-stone-600">
+              <li>
+                <a
+                  href="{{ url_for('home') }}"
+                  class="{% if active_page == 'home' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                  >Home</a
+                >
+              </li>
+              <li class="relative" id="collections-dropdown">
+                <a
+                  href="#"
+                  class="{% if active_page == 'collections' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                  >Collections</a
+                >
+                <div id="collections-menu" class="hidden absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-md border border-stone-200 z-50">
+                  <ul class="py-2">
+                    {% for collection in collections() %}
+                    <li>
+                      <a
+                        href="{{ url_for('collection', collection_name=collection) }}"
+                        class="block px-4 py-2 text-sm text-stone-600 hover:bg-orange-50 hover:text-orange-400 transition-colors"
+                      >
+                        {{ collection|title }}
+                      </a>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </li>
+              <li>
+                <a
+                    href="{{ url_for('about')}}"
+                  class="{% if active_page == 'about' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                  >About</a
+                >
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div class="flex items-center">
-          <ul class="flex space-x-4 my-4 mx-8 font-light text-stone-600">
+        <div id="mobile-menu" class="hidden lg:hidden mt-4">
+          <ul class="space-y-2 font-light text-stone-600">
             <li>
               <a
                 href="{{ url_for('home') }}"
-                class="{% if active_page == 'home' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                class="block py-2 {% if active_page == 'home' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
                 >Home</a
               >
             </li>
-            <li class="relative" id="collections-dropdown">
-              <a
-                href="#"
-                class="{% if active_page == 'collections' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
-                >Collections</a
-              >
-              <div id="collections-menu" class="hidden absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-md border border-stone-200 z-50">
-                <ul class="py-2">
-                  {% for collection in collections() %}
-                  <li>
-                    <a
-                      href="{{ url_for('collection', collection_name=collection) }}"
-                      class="block px-4 py-2 text-sm text-stone-600 hover:bg-orange-50 hover:text-orange-400 transition-colors"
-                    >
-                      {{ collection|title }}
-                    </a>
-                  </li>
-                  {% endfor %}
-                </ul>
-              </div>
+            <li>
+              <button id="mobile-collections-toggle" class="w-full text-left py-2 {% if active_page == 'collections' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}">
+                Collections
+                <svg class="inline w-4 h-4 ml-1 transition-transform" id="mobile-collections-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              <ul id="mobile-collections-menu" class="hidden pl-4 space-y-2 mt-2">
+                {% for collection in collections() %}
+                <li>
+                  <a
+                    href="{{ url_for('collection', collection_name=collection) }}"
+                    class="block py-1 text-sm text-stone-600 hover:text-orange-400"
+                  >
+                    {{ collection|title }}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
             </li>
             <li>
               <a
-                  href="{{ url_for('about')}}"
-                class="{% if active_page == 'about' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
+                href="{{ url_for('about')}}"
+                class="block py-2 {% if active_page == 'about' %} text-orange-400 font-medium {% else %} text-stone-600 hover:text-orange-400 {% endif %}"
                 >About</a
               >
             </li>
@@ -99,6 +146,25 @@
 
           menu.addEventListener('mouseenter', showMenu);
           menu.addEventListener('mouseleave', hideMenu);
+        }
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileCollectionsToggle = document.getElementById('mobile-collections-toggle');
+        const mobileCollectionsMenu = document.getElementById('mobile-collections-menu');
+        const mobileCollectionsIcon = document.getElementById('mobile-collections-icon');
+
+        if (mobileMenuButton && mobileMenu) {
+          mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+          });
+        }
+
+        if (mobileCollectionsToggle && mobileCollectionsMenu && mobileCollectionsIcon) {
+          mobileCollectionsToggle.addEventListener('click', function() {
+            mobileCollectionsMenu.classList.toggle('hidden');
+            mobileCollectionsIcon.classList.toggle('rotate-180');
+          });
         }
       });
     </script>
