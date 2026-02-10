@@ -53,3 +53,6 @@ Built with FastAPI backend, deployed on Render with Cloudflare R2 for image stor
 - [ ] E-commerce integration for print sales
 - [ ] Advanced search/filtering
 - [ ] Analytics dashboard
+- [ ] Collection Editing:w
+
+
