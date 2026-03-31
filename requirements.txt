@@ -81,7 +81,7 @@ markupsafe==3.0.3
     #   mako
 packaging==25.0
     # via pytest
-pillow==12.0.0
+pillow==12.1.1
     # via photo-portfolio
 pluggy==1.6.0
     # via pytest
