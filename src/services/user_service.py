@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from src.dependencies.config import Config
+from src.dependencies.logging import get_logger
 from src.models.schema import User, UserType
 
 
@@ -22,6 +23,7 @@ class AuthService:
         self.db = db
         self.config = config
         self.password_hash: PasswordHash = password_hash
+        self.logger = get_logger(name=__name__, config=config)
 
     def admin_exists(self) -> bool:
         """checks db for existing admin user"""
@@ -49,9 +51,11 @@ class AuthService:
         try:
             self.db.add(instance=user)
             self.db.commit()
+            self.logger.info(f"User created: email={email}")
             return True
         except IntegrityError:
             self.db.rollback()
+            self.logger.error(f"Failed to create user: email={email} already exists")
             raise
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
@@ -71,11 +75,14 @@ class AuthService:
         """authenticates the user against the db"""
         user = self.get_user_by_email(email=email)
         if not user:
+            self.logger.warning(f"Authentication failed: no user found for email={email}")
             return None
         if not self.verify_password(
             plain_password=password, hashed_password=user.hashed_password
         ):
+            self.logger.warning(f"Authentication failed: invalid password for email={email}")
             return None
+        self.logger.info(f"User authenticated: email={email}")
         return user
 
     def create_access_token(
@@ -105,7 +112,9 @@ class AuthService:
             )
             email: str | None = payload.get("sub")
             if email is None:
+                self.logger.warning("Token verification failed: no subject in payload")
                 return None
             return self.get_user_by_email(email)
         except jwt.PyJWTError:
+            self.logger.warning("Token verification failed: invalid or expired token")
             return None

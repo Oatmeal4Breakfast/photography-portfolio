@@ -3,10 +3,15 @@ from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from src.models.schema import Base
 from src.dependencies.config import Config, EnvType, get_config
+from src.dependencies.logging import get_logger
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+config: Config = get_config()
+
+logger = get_logger(name=__name__, config=config)
 
 
 def _build_db_uri(config: Config) -> str:
@@ -28,8 +33,10 @@ def _build_db_uri(config: Config) -> str:
             db_uri = config.db_uri.replace("postgresql", "postgresql+psycopg")
             return db_uri
         else:
+            logger.error(msg="Invalid postgres uri")
             raise ValueError(f"{config.db_uri} is not a postgres uri.")
     else:
+        logger.error(msg="Invalid environment type")
         raise ValueError("Invalid environment type")
 
 
@@ -48,7 +55,6 @@ def _override_engine_for_tests(test_engine: Engine) -> None:
     SessionLocal = sessionmaker(bind=test_engine)
 
 
-config: Config = get_config()
 db_uri: str = _build_db_uri(config)
 engine: Engine = _create_db_engine(db_uri)
 SessionLocal: sessionmaker[Session] = sessionmaker(bind=engine)

@@ -12,7 +12,7 @@ class EnvType(Enum):
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        case_sensitive=False, env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        case_sensitive=False, env_file=".env", env_file_encoding="utf-8", extra="ignore", populate_by_name=True
     )
     db_uri: str = Field(validation_alias="DB_URI")
     env_type: EnvType = Field(validation_alias="ENV_TYPE")

@@ -10,9 +10,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.dependencies.database import init_db
 from src.dependencies.config import Config, EnvType, get_config, CSRFSettings
+from src.dependencies.logging import get_logger
 from src.dependencies.templates import templates
 
 from src.routers import admin, public
+
+_config: Config = get_config()
+logger = get_logger(name=__name__, config=_config)
 
 
 @CsrfProtect.load_config
@@ -23,9 +27,12 @@ def get_csrf_config() -> CSRFSettings:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config: Config = get_config()
+    logger.info(f"Starting application in {config.env_type.value} mode")
     if config.env_type == EnvType.DEVELOPMENT:
         init_db()
+        logger.info("Database initialized")
     yield
+    logger.info("Application shutting down")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -36,6 +43,7 @@ app.include_router(router=admin.router)
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.warning(f"HTTP {exc.status_code} on {request.method} {request.url.path}")
     if exc.status_code == 404:
         return templates.TemplateResponse(
             request=request,
@@ -53,6 +61,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
     return templates.TemplateResponse(
         request=request,
         name="500.html",
