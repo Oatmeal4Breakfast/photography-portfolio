@@ -28,3 +28,33 @@
 [2026-04-04 23:40:44] [WARNING] [src.services.user_service] [user_service.py:83]: Authentication failed: invalid password for email=flastname@example.com
 [2026-04-04 23:40:44] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
 [2026-04-04 23:40:44] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:20:34] [ERROR] [src.dependencies.database] [database.py:36]: Invalid postgres uri
+[2026-04-05 01:20:34] [ERROR] [src.services.admin_service] [admin_service.py:216]: File name must be present.
+[2026-04-05 01:20:34] [ERROR] [src.services.admin_service] [admin_service.py:222]: Duplicate Photo: photo with hash 323982c8947d29cab20d05f48ad22a0d2257ac701a9ef4147f40646f39e85598 already exists.
+[2026-04-05 01:20:34] [WARNING] [src.services.photo_service] [photo_service.py:49]: No hero photo found in database
+[2026-04-05 01:20:34] [WARNING] [src.services.photo_service] [photo_service.py:59]: No about_me photo found in database
+[2026-04-05 01:20:34] [ERROR] [src.services.user_service] [user_service.py:58]: Failed to create user: email=flastname@example.com already exists
+[2026-04-05 01:20:35] [WARNING] [src.services.user_service] [user_service.py:78]: Authentication failed: no user found for email=flastname1@example.com
+[2026-04-05 01:20:35] [WARNING] [src.services.user_service] [user_service.py:83]: Authentication failed: invalid password for email=flastname@example.com
+[2026-04-05 01:20:35] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:20:35] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:21:14] [ERROR] [src.dependencies.database] [database.py:36]: Invalid postgres uri
+[2026-04-05 01:21:14] [ERROR] [src.services.admin_service] [admin_service.py:216]: File name must be present.
+[2026-04-05 01:21:14] [ERROR] [src.services.admin_service] [admin_service.py:222]: Duplicate Photo: photo with hash 323982c8947d29cab20d05f48ad22a0d2257ac701a9ef4147f40646f39e85598 already exists.
+[2026-04-05 01:21:14] [WARNING] [src.services.photo_service] [photo_service.py:49]: No hero photo found in database
+[2026-04-05 01:21:14] [WARNING] [src.services.photo_service] [photo_service.py:59]: No about_me photo found in database
+[2026-04-05 01:21:15] [ERROR] [src.services.user_service] [user_service.py:58]: Failed to create user: email=flastname@example.com already exists
+[2026-04-05 01:21:15] [WARNING] [src.services.user_service] [user_service.py:78]: Authentication failed: no user found for email=flastname1@example.com
+[2026-04-05 01:21:15] [WARNING] [src.services.user_service] [user_service.py:83]: Authentication failed: invalid password for email=flastname@example.com
+[2026-04-05 01:21:15] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:21:15] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:32:26] [ERROR] [src.dependencies.database] [database.py:36]: Invalid postgres uri
+[2026-04-05 01:32:26] [ERROR] [src.services.admin_service] [admin_service.py:216]: File name must be present.
+[2026-04-05 01:32:26] [ERROR] [src.services.admin_service] [admin_service.py:222]: Duplicate Photo: photo with hash 323982c8947d29cab20d05f48ad22a0d2257ac701a9ef4147f40646f39e85598 already exists.
+[2026-04-05 01:32:26] [WARNING] [src.services.photo_service] [photo_service.py:49]: No hero photo found in database
+[2026-04-05 01:32:26] [WARNING] [src.services.photo_service] [photo_service.py:59]: No about_me photo found in database
+[2026-04-05 01:32:26] [ERROR] [src.services.user_service] [user_service.py:58]: Failed to create user: email=flastname@example.com already exists
+[2026-04-05 01:32:27] [WARNING] [src.services.user_service] [user_service.py:78]: Authentication failed: no user found for email=flastname1@example.com
+[2026-04-05 01:32:27] [WARNING] [src.services.user_service] [user_service.py:83]: Authentication failed: invalid password for email=flastname@example.com
+[2026-04-05 01:32:27] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token
+[2026-04-05 01:32:27] [WARNING] [src.services.user_service] [user_service.py:119]: Token verification failed: invalid or expired token

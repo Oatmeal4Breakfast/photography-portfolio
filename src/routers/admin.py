@@ -136,7 +136,7 @@ async def login(
 
     user: User | None = service.authenticate_user(email=username, password=password)
     if user is None:
-        logger.warning(f"Login failed for username={username}")
+        logger.error(f"Login failed for username={username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not authenticate user",
