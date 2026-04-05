@@ -11,10 +11,9 @@ import uuid
 import hashlib
 
 from src.dependencies.config import Config, EnvType
+from src.dependencies.logging import get_logger
 from src.dependencies.store import ImageStore, ImagePaths
 from src.models.schema import Photo
-
-# TODO: Implement the abstracted methods. Lets see if I can get rid of any methods not used.
 
 
 class InvalidImageType(Exception):
@@ -54,6 +53,7 @@ class PhotoValidator:
         self.file: ImageUpload = file
         self.valid_types: list[str] = [type.value for type in ValidTypes]
         self.max_size: int = config.max_image_size
+        self.logger = get_logger(name=__name__, config=config)
 
     def check_exist(self) -> bool:
         """check that the file exists"""
@@ -77,18 +77,24 @@ class PhotoValidator:
 
             total += len(chunk)
             if total > self.max_size:
+                self.logger.error(
+                    f"{self.file.filename} is too large. Must be {self.config.max_image_size}"
+                )
                 raise ImageTooLarge("Image too large")
 
             chunks.append(chunk)
 
         if total == 0:
+            self.logger.error(f"{self.file.filename} has no data.")
             raise ImageDoesNotExist("Image has no data")
 
+        self.logger.info(msg=f"{self.file.filename} successfully parsed")
         return b"".join(chunks)
 
     async def validate(self) -> bytes | None:
         "Composes the other methods to validate the file upload"
         if not self.check_exist() or not self.check_file_type():
+            self.logger.error(f"{self.file.filename} is of unsupported type")
             raise ValueError("Unsupported file type")
         file_data: bytes | None = await self.check_file_size()
         return file_data
@@ -99,11 +105,13 @@ class AdminService:
         self.db: Session = db
         self.config: Config = config
         self.store: ImageStore = store
+        self.logger = get_logger(name=__name__, config=config)
 
     def _sanitize_file(self, file_name: str) -> str:
         """sanitizes the file name with a UUID applied"""
         stem: str = Path(file_name).stem
         sanitized_stem: str = stem.replace(" ", "_")[:50]
+        self.logger.info(msg=f"{file_name} has been sanitzed...")
         return f"{sanitized_stem}_{uuid.uuid4().hex[:8]}.jpeg"
 
     def _get_hash(self, file_data: bytes) -> str:
@@ -127,6 +135,7 @@ class AdminService:
                 return bytes_arr.getvalue()
             img.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
             img.save(bytes_arr, format="JPEG")
+            self.logger.info("file has been proccessed")
             return bytes_arr.getvalue()
 
     def _add_photo_to_db(self, photo: Photo) -> bool:
@@ -134,18 +143,26 @@ class AdminService:
         try:
             self.db.add(instance=photo)
             self.db.commit()
+            self.logger.info(msg=f"{photo.file_name} written to databse.")
             return True
         except IntegrityError:
             self.db.rollback()
+            self.logger.error(msg=f"{photo.file_name} was not written to the database.")
             raise
 
     def _delete_photo_from_db(self, photo: Photo) -> None:
         """deletes a photo from the database"""
         try:
             self.db.delete(instance=photo)
+            self.logger.info(
+                msg=f"{photo.file_name} successfully deleted from databse."
+            )
             self.db.commit()
         except IntegrityError:
             self.db.rollback()
+            self.logger.error(
+                msg=f"{photo.file_name} was not deleted from the database."
+            )
             raise
 
     async def _create_thumbnail(self, file: bytes, file_name: str) -> str:
@@ -154,7 +171,9 @@ class AdminService:
         file_data: bytes = self._process_image(file, size=(300, 300))
         results: bool = await self.store.upload_image(file_data, path_to_save)
         if not results:
+            self.logger.error(msg=f"{file_name} thumbnail not created")
             raise IOError(f"Could not create thumbnail {path_to_save}")
+        self.logger.info(msg=f"{file_name} thumbnail created.")
         return path_to_save
 
     async def _create_original(self, file: bytes, file_name: str) -> str:
@@ -163,7 +182,9 @@ class AdminService:
         file_data: bytes = self._process_image(file)
         results: bool = await self.store.upload_image(file_data, path_to_save)
         if not results:
+            self.logger.error(msg=f"{file_name} original not created")
             raise IOError(f"Could not create original {path_to_save}")
+        self.logger.info(msg=f"{file_name} original created.")
         return path_to_save
 
     def photo_hash_exists(self, hash: str) -> bool:
@@ -192,12 +213,14 @@ class AdminService:
         file_hash: str = self._get_hash(file_data)
 
         if file_name is None:
+            self.logger.error("File name must be present.")
             return
 
         file_name: str = self._sanitize_file(file_name=file_name)
 
         if self.photo_hash_exists(hash=file_hash):
-            raise ValueError("Duplicate Photo")
+            self.logger.error(msg=f"Duplicate Photo: photo with hash {file_hash} already exists.")
+            raise ValueError(f"Duplicate Photo: photo with hash {file_hash} already exists.")
 
         try:
             thumbnail_path: str = await self._create_thumbnail(
@@ -217,8 +240,10 @@ class AdminService:
             if self._add_photo_to_db(photo=new_photo):
                 return new_photo
         except IOError as e:
+            self.logger.error(f"IOError: could not save image: {e}")
             raise IOError(f"Could not save image {e}")
         except Exception as e:
+            self.logger.error(f"Error: processing image: {e}")
             raise Exception(f"Error processing image {e}")
 
     async def delete_photos(self, photos: list[Photo]) -> None:
@@ -242,6 +267,12 @@ class AdminService:
                 if photo.original_path in success and photo.thumbnail_path in success:
                     self.db.delete(instance=photo)
             self.db.commit()
+            self.logger.info(
+                msg=f"Image {photo.file_name} has been successfully deleted"
+            )
         except IntegrityError:
+            self.logger.error(
+                msg=f"Integrety Error: Could not delete image {photo.file_name}"
+            )
             self.db.rollback()
             raise

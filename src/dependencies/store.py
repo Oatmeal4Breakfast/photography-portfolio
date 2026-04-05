@@ -9,6 +9,7 @@ from functools import partial
 from typing import Protocol, List, Tuple
 
 from src.dependencies.config import Config
+from src.dependencies.logging import get_logger
 
 
 type ImagePaths = List[str]
@@ -57,6 +58,7 @@ class RemoteStore:
             region_name="auto",
         )
         self.bucket: str = config.bucket
+        self.logger = get_logger(name=__name__, config=config)
 
     async def upload_image(self, file_data: bytes, path_to_save: str) -> bool:
         """send the upload request to the signed URL"""
@@ -71,10 +73,13 @@ class RemoteStore:
             return True
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
-            raise IOError(f"R2 Upload failed [{error_code}]: {e}")
+            self.logger.warn(msg=f"R2 upload failed [{error_code}]: {e}")
+            raise IOError(f"R2 upload failed [{error_code}]: {e}")
         except EndpointConnectionError as e:
+            self.logger.warn(msg=f"Cannot connect to endpoint: {e}")
             raise IOError(f"Cannot connect to endpoint {e}")
         except BotoCoreError as e:
+            self.logger.warn(f"R2 client error: {e}")
             raise IOError(f"R2 client error: {e}")
 
     async def delete_images(
@@ -93,10 +98,13 @@ class RemoteStore:
             results = await asyncio.to_thread(delete_object_partial)
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
+            self.logger.warn(f"R2 Delete failed [{error_code}]: {e}")
             raise IOError(f"R2 Delete failed [{error_code}]: {e}")
         except EndpointConnectionError as e:
+            self.logger.warn(msg=f"Cannot connect to endpoint {e}")
             raise IOError(f"Cannot connect to endpoint {e}")
         except BotoCoreError as e:
+            self.logger.warn(f"R2 client error: {e}")
             raise IOError(f"R2 client error: {e}")
 
         deleted: list[dict] = results.get("Deleted", [])

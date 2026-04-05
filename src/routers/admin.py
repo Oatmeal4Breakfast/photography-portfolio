@@ -26,11 +26,14 @@ from src.models.models import DeletePhotoPayload, UserRegistration
 
 from src.dependencies.database import get_db
 from src.dependencies.config import get_config, Config, EnvType
+from src.dependencies.logging import get_logger
 from src.dependencies.store import ImageStore, LocalStore, RemoteStore
 
 from src.utils.util import build_photo_url
 from src.dependencies.templates import templates
 
+_config: Config = get_config()
+logger = get_logger(name=__name__, config=_config)
 
 router: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -133,6 +136,7 @@ async def login(
 
     user: User | None = service.authenticate_user(email=username, password=password)
     if user is None:
+        logger.warning(f"Login failed for username={username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not authenticate user",
@@ -144,6 +148,7 @@ async def login(
     access_token: str = service.create_access_token(
         data={"sub": user.email}, expires_delta=expires_delta
     )
+    logger.info(f"User logged in: email={username}")
     redirect_url = request.url_for("view_photos")
     redirect = RedirectResponse(url=redirect_url, status_code=303)
     redirect.set_cookie(
@@ -193,10 +198,12 @@ async def register_user(
         password=form_data.password,
     )
     if not user_created:
+        logger.error(f"Registration failed for email={form_data.email}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not register user",
         )
+    logger.info(f"New user registered: email={form_data.email}")
     redirect_url = request.url_for("login_form")
     response = RedirectResponse(url=redirect_url, status_code=303)
     csrf_protect.unset_csrf_cookie(response=response)
@@ -252,11 +259,13 @@ async def uploads_photo(
         title=title, file_name=file_name, file_data=file_data, collection=collection
     )
     if photo is None:
+        logger.error(f"Upload failed for file={file_name}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server could not upload image",
         )
 
+    logger.info(f"Photo uploaded: file={file_name} title={title} collection={collection}")
     redirect_url = request.url_for("upload_form")
     response = RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
     csrf_protect.unset_csrf_cookie(response)
@@ -329,4 +338,5 @@ async def delete_photos(
         photos.append(photo)
 
     await service.delete_photos(photos)
+    logger.info(f"Deleted {len(photo_ids)} photo(s): ids={photo_ids}")
     return {"success", 200}

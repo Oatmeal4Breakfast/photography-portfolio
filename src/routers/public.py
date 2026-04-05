@@ -10,9 +10,13 @@ from src.models.schema import Photo
 from src.services.photo_service import PhotoService
 from src.dependencies.database import get_db
 from src.dependencies.config import get_config, Config
+from src.dependencies.logging import get_logger
 
 from src.utils.util import build_photo_url
 from src.dependencies.templates import templates
+
+_config: Config = get_config()
+logger = get_logger(name=__name__, config=_config)
 
 router: APIRouter = APIRouter()
 
@@ -32,6 +36,7 @@ async def home(
     image: str | None = service.get_hero_photo()
 
     if image is None:
+        logger.warning("No hero photo found, using fallback")
         image: str = "static/images/fallback_hero.jpeg"
 
     photo_path: str = build_photo_url(config=service.config, path=image)
@@ -61,6 +66,7 @@ async def collection(
     collection_name: str,
     service: Annotated[PhotoService, Depends(get_photo_service)],
 ):
+    logger.info(f"Collection page requested: collection={collection_name}")
     photos: Sequence[Photo] = service.get_photos_by_collection(
         collection_name=collection_name
     )
