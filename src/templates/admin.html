@@ -3,6 +3,8 @@ Admin - view {% endblock %} {% block content %}
 
 <script type="text/javascript" src="/static/scripts/admin.js" defer></script>
 
+<input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
 <section class="container mx-auto p-2 mb-4">
   <div class="flex justify-end space-x-4 ">
     <a href="{{ url_for('upload_form')}}" class="btn btn-primary bg-orange-500 text-white font-bold hover:bg-orange-600 rounded-md shadow p-2 px-5"> Upload</a>
