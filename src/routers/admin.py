@@ -52,9 +52,6 @@ def get_auth_service(
 
 
 def get_image_store(config: Config = Depends(get_config)) -> ImageStore:
-    """
-    check the env type and return apppropriate ImageStore type based on results
-    """
     if config.env_type == EnvType.DEVELOPMENT:
         return LocalStore()
     return RemoteStore(config=config)
@@ -74,9 +71,6 @@ async def user_registration_form(
     email: Annotated[str, Form()],
     password: Annotated[str, Form()],
 ) -> UserRegistration:
-    """
-    verify the form with a pydantic model
-    """
     return UserRegistration(
         firstname=firstname, lastname=lastname, email=email, password=password
     )
@@ -86,10 +80,12 @@ async def get_current_user(
     request: Request,
     service: Annotated[AuthService, Depends(get_auth_service)],
     access_token: Annotated[str | None, Cookie()] = None,
-) -> User | RedirectResponse:
+) -> User:
     if not access_token:
-        redirect_url = request.url_for("login_form")
-        return RedirectResponse(url=redirect_url, status_code=303)
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": str(request.url_for("login_form"))},
+        )
     token: str = access_token.replace("Bearer: ", "")
     user: User | None = service.verify_access_token(token)
     if user is None:
@@ -185,7 +181,7 @@ async def register_user(
 ):
     """handler for the post request made in the registration form"""
 
-    csrf_protect.validate_csrf(request)
+    await csrf_protect.validate_csrf(request)
 
     if service.admin_exists():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
@@ -242,7 +238,7 @@ async def uploads_photo(
 ):
     """uploads the photo after validtion to the image store. It then will input the metadata to the DB for future reference"""
 
-    csrf_protect.validate_csrf(request)
+    await csrf_protect.validate_csrf(request)
 
     validator: PhotoValidator = PhotoValidator(file=file, config=config)
 
@@ -265,7 +261,9 @@ async def uploads_photo(
             detail="Server could not upload image",
         )
 
-    logger.info(f"Photo uploaded: file={file_name} title={title} collection={collection}")
+    logger.info(
+        f"Photo uploaded: file={file_name} title={title} collection={collection}"
+    )
     redirect_url = request.url_for("upload_form")
     response = RedirectResponse(url=f"{redirect_url}?success=true", status_code=303)
     csrf_protect.unset_csrf_cookie(response)
@@ -317,7 +315,7 @@ async def delete_photos(
 ):
     """Delete selected photos from image store and metadata from db"""
 
-    csrf_protect.validate_csrf(request)
+    await csrf_protect.validate_csrf(request)
 
     photo_ids: list[int] = payload.photo_ids
     if not photo_ids:

@@ -4,6 +4,8 @@ const photoGrid = document.getElementById("photo-grid");
 const deleteBtn = document.getElementById("delete-btn");
 const countSpan = document.getElementById("count");
 
+const csrfToken = document.getElementById("csrf-token").value;
+
 countSpan.hidden = true;
 
 photoGrid.addEventListener("click", function (event) {
@@ -38,12 +40,6 @@ function updateDeleteButton() {
   countSpan.hidden = count === 0;
 }
 
-const getCookie = (name) => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-};
-
 deleteBtn.addEventListener("click", async function () {
   if (selectedPhotoIds.length === 0) return;
 
@@ -57,7 +53,7 @@ deleteBtn.addEventListener("click", async function () {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrf_token"),
+        "X-CSRF-Token": csrfToken,
       },
       body: JSON.stringify({ photo_ids: selectedPhotoIds }),
     });

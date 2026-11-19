@@ -5,6 +5,7 @@ from fastapi import (
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi_csrf_protect.flexible import CsrfProtect
+from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -44,7 +45,13 @@ app.include_router(router=admin.router)
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     logger.warning(f"HTTP {exc.status_code} on {request.method} {request.url.path}")
-    if exc.status_code == 404:
+    if exc.status_code == status.HTTP_303_SEE_OTHER:
+        location: str | None = exc.headers.get("Location") if exc.headers else None
+
+        if location:
+            return RedirectResponse(url=location, status_code=status.HTTP_303_SEE_OTHER)
+
+    if exc.status_code == status.HTTP_404_NOT_FOUND:
         return templates.TemplateResponse(
             request=request,
             name="404.html",
@@ -61,7 +68,9 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+    logger.exception(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}"
+    )
     return templates.TemplateResponse(
         request=request,
         name="500.html",
